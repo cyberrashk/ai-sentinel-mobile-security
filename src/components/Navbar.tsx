@@ -16,6 +16,11 @@ export default function Navbar() {
             <span className="text-xl font-bold text-cyberguard-primary">CyberGuard AI</span>
           </Link>
           
+          <div className="hidden md:flex items-center space-x-6">
+            <Link to="/" className="text-sm font-medium hover:text-cyberguard-primary">Dashboard</Link>
+            <Link to="/security" className="text-sm font-medium hover:text-cyberguard-primary">Security</Link>
+          </div>
+          
           <div className="flex items-center space-x-3">
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
