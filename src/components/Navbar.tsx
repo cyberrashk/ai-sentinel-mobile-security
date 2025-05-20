@@ -2,9 +2,11 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell, Shield } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function Navbar() {
+  const location = useLocation();
+  
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/70 border-b border-slate-200">
       <div className="cyberguard-container py-4">
@@ -17,8 +19,18 @@ export default function Navbar() {
           </Link>
           
           <div className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-sm font-medium hover:text-cyberguard-primary">Dashboard</Link>
-            <Link to="/security" className="text-sm font-medium hover:text-cyberguard-primary">Security</Link>
+            <Link 
+              to="/" 
+              className={`text-sm font-medium ${location.pathname === '/' ? 'text-cyberguard-primary' : 'hover:text-cyberguard-primary'}`}
+            >
+              Dashboard
+            </Link>
+            <Link 
+              to="/security" 
+              className={`text-sm font-medium ${location.pathname === '/security' ? 'text-cyberguard-primary' : 'hover:text-cyberguard-primary'}`}
+            >
+              Security
+            </Link>
           </div>
           
           <div className="flex items-center space-x-3">
