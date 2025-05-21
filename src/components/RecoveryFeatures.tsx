@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, Eye, Shield } from 'lucide-react';
+import { AlertCircle, Eye, Shield, RefreshCw } from 'lucide-react';
 
 const RecoveryFeatures = () => {
   const features = [
