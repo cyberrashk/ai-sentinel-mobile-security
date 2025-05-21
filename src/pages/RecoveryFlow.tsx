@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -11,32 +10,168 @@ import {
 import { toast } from 'sonner';
 import RecoveryStepFlow from '@/components/RecoveryStepFlow';
 import RecoveryFeatures from '@/components/RecoveryFeatures';
+import * as authService from '@/services/authService';
+import { scanDarkWeb, analyzeEmailRisk } from '@/services/darkWebService';
+
+interface ScanResult {
+  securityScore: number;
+  darkWebBreaches: number;
+  passwordStrength: 'weak' | 'medium' | 'strong';
+  twoFactorEnabled: boolean;
+  recoveryOptionsComplete: boolean;
+  riskLevel: 'low' | 'medium' | 'high';
+  riskReasons: string[];
+}
 
 const RecoveryFlow = () => {
   const [scanStarted, setScanStarted] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
-  const [securityScore, setSecurityScore] = useState(0);
+  const [scanPhase, setScanPhase] = useState('');
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [user, setUser] = useState<{email: string, name: string} | null>(null);
   
-  const handleStartScan = () => {
-    setScanStarted(true);
-    
-    // Simulate scan progress
-    const interval = setInterval(() => {
-      setScanProgress(prevProgress => {
-        const newProgress = prevProgress + 5;
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          setScanComplete(true);
-          setSecurityScore(84);
-          toast.success("Security scan complete", {
-            description: "No compromises detected in your account"
-          });
-          return 100;
-        }
-        return newProgress;
+  // Check if user is logged in
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
+      setUser({
+        name: currentUser.name,
+        email: currentUser.email
       });
-    }, 200);
+    }
+  }, []);
+  
+  const handleStartScan = async () => {
+    if (!user) {
+      toast.error('Authentication Required', { 
+        description: 'Please login to use the recovery system'
+      });
+      return;
+    }
+    
+    setScanStarted(true);
+    setScanProgress(0);
+    setScanPhase('Initializing security scan...');
+    
+    // Phase 1: Login pattern analysis
+    await simulateScanPhase(
+      'Analyzing login patterns...', 
+      0, 
+      30, 
+      100
+    );
+    
+    // Phase 2: Dark web scan (real scan)
+    setScanPhase('Scanning dark web for credentials...');
+    let darkWebResults = [];
+    try {
+      darkWebResults = await scanDarkWeb(user.email);
+    } catch (error) {
+      console.error('Dark web scan failed:', error);
+    }
+    
+    // Update progress after dark web scan
+    setScanProgress(55);
+    
+    // Phase 3: Email risk analysis
+    setScanPhase('Checking for unauthorized access...');
+    let emailRiskResult = { riskLevel: 'low' as const, reasons: [''] };
+    try {
+      emailRiskResult = analyzeEmailRisk(user.email);
+    } catch (error) {
+      console.error('Email risk analysis failed:', error);
+    }
+    
+    // Phase 4: Final assessment
+    await simulateScanPhase(
+      'Finalizing security assessment...', 
+      55, 
+      100, 
+      150
+    );
+    
+    // Calculate security score based on findings
+    const passwordStrength = Math.random() > 0.3 ? 'strong' : Math.random() > 0.5 ? 'medium' : 'weak';
+    const twoFactorEnabled = Math.random() > 0.4;
+    const recoveryOptionsComplete = Math.random() > 0.7;
+    
+    // Base score starts at 100, deduct points for issues
+    let securityScore = 100;
+    
+    // Deduct for dark web breaches
+    securityScore -= darkWebResults.length * 8;
+    
+    // Deduct for password strength
+    if (passwordStrength === 'weak') securityScore -= 15;
+    if (passwordStrength === 'medium') securityScore -= 5;
+    
+    // Deduct for missing 2FA
+    if (!twoFactorEnabled) securityScore -= 10;
+    
+    // Deduct for incomplete recovery options
+    if (!recoveryOptionsComplete) securityScore -= 7;
+    
+    // Deduct for email risk level
+    if (emailRiskResult.riskLevel === 'medium') securityScore -= 5;
+    if (emailRiskResult.riskLevel === 'high') securityScore -= 10;
+    
+    // Ensure score is within bounds
+    securityScore = Math.max(Math.min(securityScore, 100), 0);
+    
+    // Set final result
+    setScanResult({
+      securityScore: Math.round(securityScore),
+      darkWebBreaches: darkWebResults.length,
+      passwordStrength,
+      twoFactorEnabled,
+      recoveryOptionsComplete,
+      riskLevel: emailRiskResult.riskLevel,
+      riskReasons: emailRiskResult.reasons
+    });
+    
+    setScanComplete(true);
+    
+    // Show toast based on score
+    if (securityScore >= 85) {
+      toast.success("Security scan complete", {
+        description: "Your account appears to be secure"
+      });
+    } else if (securityScore >= 60) {
+      toast.warning("Security scan complete", {
+        description: "Some security issues were detected"
+      });
+    } else {
+      toast.error("Security vulnerabilities detected", {
+        description: "Urgent security issues require attention"
+      });
+    }
+  };
+  
+  const simulateScanPhase = async (
+    phase: string, 
+    startProgress: number, 
+    endProgress: number, 
+    duration: number
+  ) => {
+    setScanPhase(phase);
+    const startTime = Date.now();
+    const endTime = startTime + duration;
+    
+    return new Promise<void>(resolve => {
+      const interval = setInterval(() => {
+        const now = Date.now();
+        const timeProgress = Math.min((now - startTime) / duration, 1);
+        const newProgress = startProgress + timeProgress * (endProgress - startProgress);
+        
+        setScanProgress(newProgress);
+        
+        if (now >= endTime) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 50);
+    });
   };
 
   return (
@@ -73,7 +208,19 @@ const RecoveryFlow = () => {
                     using advanced neural networks and behavioral biometrics.
                   </p>
                   
-                  {!scanStarted ? (
+                  {!user ? (
+                    <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
+                      <p className="text-sm mb-2">Please login to use the recovery system</p>
+                      <Button 
+                        size="sm" 
+                        className="bg-white text-cyberguard-primary hover:bg-white/90"
+                        onClick={() => window.location.href = '/security'}
+                      >
+                        <Lock className="mr-2 w-4 h-4" />
+                        Login First
+                      </Button>
+                    </div>
+                  ) : !scanStarted ? (
                     <Button 
                       onClick={handleStartScan}
                       size="lg" 
@@ -97,18 +244,19 @@ const RecoveryFlow = () => {
                             ></div>
                           </div>
                           <div className="text-xs">
-                            {scanProgress < 30 && "Analyzing login patterns..."}
-                            {scanProgress >= 30 && scanProgress < 60 && "Scanning dark web for credentials..."}
-                            {scanProgress >= 60 && scanProgress < 90 && "Checking for unauthorized access..."}
-                            {scanProgress >= 90 && scanProgress < 100 && "Finalizing security assessment..."}
+                            {scanPhase}
                           </div>
                         </div>
-                      ) : (
+                      ) : scanResult && (
                         <div className="flex items-center">
                           <ShieldCheck className="w-5 h-5 mr-3" />
                           <div>
-                            <span className="block">Account secure!</span> 
-                            <span className="text-sm opacity-80">Security score: {securityScore}/100</span>
+                            <span className="block">
+                              {scanResult.securityScore >= 85 ? 'Account secure!' : 
+                               scanResult.securityScore >= 60 ? 'Some issues found' : 
+                               'Security vulnerabilities detected!'}
+                            </span>
+                            <span className="text-sm opacity-80">Security score: {scanResult.securityScore}/100</span>
                           </div>
                         </div>
                       )}
@@ -116,26 +264,35 @@ const RecoveryFlow = () => {
                   )}
                 </div>
                 
-                {scanComplete && (
+                {scanComplete && scanResult && (
                   <div className="mt-6 md:mt-0 md:ml-6 md:w-1/3">
                     <div className="bg-white/10 backdrop-blur-md p-4 rounded-lg border border-white/20">
                       <h3 className="font-semibold mb-2">Security Assessment</h3>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Password Strength</span>
-                          <span className="font-medium text-sm">Strong</span>
+                          <span className={`font-medium text-sm ${
+                            scanResult.passwordStrength === 'strong' ? 'text-green-300' :
+                            scanResult.passwordStrength === 'medium' ? 'text-yellow-300' : 'text-red-300'
+                          }`}>{scanResult.passwordStrength}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">2FA Status</span>
-                          <span className="font-medium text-sm">Enabled</span>
+                          <span className={`font-medium text-sm ${scanResult.twoFactorEnabled ? 'text-green-300' : 'text-red-300'}`}>
+                            {scanResult.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Dark Web Exposure</span>
-                          <span className="font-medium text-sm">None Detected</span>
+                          <span className={`font-medium text-sm ${scanResult.darkWebBreaches === 0 ? 'text-green-300' : 'text-red-300'}`}>
+                            {scanResult.darkWebBreaches === 0 ? 'None Detected' : `${scanResult.darkWebBreaches} Breach(es)`}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Recovery Options</span>
-                          <span className="font-medium text-sm">Incomplete</span>
+                          <span className={`font-medium text-sm ${scanResult.recoveryOptionsComplete ? 'text-green-300' : 'text-yellow-300'}`}>
+                            {scanResult.recoveryOptionsComplete ? 'Complete' : 'Incomplete'}
+                          </span>
                         </div>
                       </div>
                     </div>

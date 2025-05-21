@@ -10,6 +10,10 @@ import {
   FileX, 
   Lock,
 } from 'lucide-react';
+import { scanDarkWeb } from '@/services/darkWebService';
+import { startScan } from '@/services/antivirusService';
+import * as authService from '@/services/authService';
+import { toast } from "sonner";
 
 type ScanType = 'malware' | 'phishing' | 'network' | 'identity';
 
@@ -23,6 +27,7 @@ export default function SecurityScanCard({ type, className, onScan }: SecuritySc
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanComplete, setScanComplete] = useState(false);
+  const [threatFound, setThreatFound] = useState(false);
   
   const getScanConfig = () => {
     switch (type) {
@@ -71,27 +76,96 @@ export default function SecurityScanCard({ type, className, onScan }: SecuritySc
 
   const config = getScanConfig();
   
-  const handleScan = () => {
+  const handleScan = async () => {
     setIsScanning(true);
     setScanProgress(0);
     setScanComplete(false);
+    setThreatFound(false);
     
-    // Simulate scan progress
+    // Use different scanning logic based on scan type
+    if (type === 'malware') {
+      // Use the antivirus service for malware scans
+      try {
+        const scanId = await startScan('quick');
+        simulateProgress(true);
+        if (onScan) onScan();
+      } catch (error) {
+        toast.error('Scan failed', { description: 'Unable to initiate malware scan' });
+        setIsScanning(false);
+      }
+    } else if (type === 'identity') {
+      // Use dark web scanning for identity protection
+      const user = authService.getCurrentUser();
+      if (user) {
+        try {
+          simulateProgress(false);
+          // When progress reaches about 70%, perform the actual scan
+          setTimeout(async () => {
+            try {
+              const results = await scanDarkWeb(user.email);
+              setThreatFound(results.length > 0);
+              completeScan();
+              
+              if (results.length > 0) {
+                toast.warning('Breach Detected!', { 
+                  description: `Your email was found in ${results.length} data breach(es)`,
+                  action: {
+                    label: 'View Details',
+                    onClick: () => console.log('User clicked to view breach details', results)
+                  }
+                });
+              }
+            } catch (error) {
+              toast.error('Scan Error', { description: 'Failed to complete dark web scan' });
+              completeScan();
+            }
+          }, 1500);
+        } catch (error) {
+          toast.error('Scan failed', { description: 'Unable to initiate identity scan' });
+          setIsScanning(false);
+        }
+      } else {
+        toast.error('Authentication Required', { description: 'Please login to scan for identity breaches' });
+        setIsScanning(false);
+      }
+    } else {
+      // For other scan types, simulate scan with appropriate timing
+      simulateProgress(type === 'network');
+    }
+  };
+  
+  const simulateProgress = (fastScan: boolean) => {
     const interval = setInterval(() => {
       setScanProgress(prev => {
-        const newProgress = prev + Math.random() * 15;
+        const increment = fastScan ? Math.random() * 15 : Math.random() * 8;
+        const newProgress = prev + increment;
+        
         if (newProgress >= 100) {
           clearInterval(interval);
-          setTimeout(() => {
-            setScanComplete(true);
-            setIsScanning(false);
-            if (onScan) onScan();
-          }, 500);
+          completeScan();
           return 100;
         }
         return newProgress;
       });
-    }, 300);
+    }, fastScan ? 300 : 500);
+  };
+  
+  const completeScan = () => {
+    setScanProgress(100);
+    setTimeout(() => {
+      setScanComplete(true);
+      setIsScanning(false);
+      
+      // Trigger parent callback if provided
+      if (onScan) onScan();
+      
+      // Show toast notification based on scan result
+      if (!threatFound) {
+        toast.success(`${config.title} Complete`, {
+          description: "No threats were detected during the scan"
+        });
+      }
+    }, 500);
   };
 
   return (
@@ -119,12 +193,17 @@ export default function SecurityScanCard({ type, className, onScan }: SecuritySc
             <div className="scanning-line absolute top-0 left-0 right-0 opacity-40"></div>
           </div>
           <p className="text-sm text-center text-gray-600">
-            {scanProgress < 100 ? 'AI analyzing your device...' : 'Finalizing results...'}
+            {scanProgress < 30 && `Initializing ${config.title.toLowerCase()} scan...`}
+            {scanProgress >= 30 && scanProgress < 60 && 'AI analyzing your device...'}
+            {scanProgress >= 60 && scanProgress < 90 && (type === 'identity' ? 'Checking dark web databases...' : 'Scanning system files...')}
+            {scanProgress >= 90 && scanProgress < 100 && 'Finalizing results...'}
           </p>
         </div>
       ) : scanComplete ? (
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-cyberguard-success">No threats found</span>
+          <span className={`text-sm font-medium ${threatFound ? 'text-cyberguard-alert' : 'text-cyberguard-success'}`}>
+            {threatFound ? 'Threats detected!' : 'No threats found'}
+          </span>
           <Button 
             variant="outline" 
             size="sm" 
