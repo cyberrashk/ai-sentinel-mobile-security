@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Shield, RefreshCw, Lock, Check } from 'lucide-react';
+import { Shield, RefreshCw, Lock, Check, Zap, FileSearch, AlertCircle } from 'lucide-react';
 
 const RecoveryStepFlow = () => {
   const steps = [
@@ -11,31 +11,53 @@ const RecoveryStepFlow = () => {
       icon: <Shield className="h-6 w-6 text-cyberguard-primary" />,
       description: 'AI performs automated forensics to check for unauthorized email forwarding rules, strange sent emails, and password changes from unknown IPs.',
       subPoints: [
-        'Detects anomalies in login behavior',
-        'Scans dark web for leaked credentials',
-        'Verifies with smart security questions'
+        'Multi-factor anomaly detection in login behavior',
+        'Dark web monitoring with real-time credential scanning',
+        'Behavioral biometrics validation for identity verification'
       ]
     },
     {
       id: 2,
-      title: 'One-Click Recovery',
-      icon: <RefreshCw className="h-6 w-6 text-cyberguard-primary" />,
-      description: 'Our AI system automatically revokes suspicious sessions, forces 2FA reset if disabled by hackers, and restores deleted emails from backups when available.',
+      title: 'Threat Assessment',
+      icon: <AlertCircle className="h-6 w-6 text-cyberguard-primary" />,
+      description: 'Our AI system evaluates the severity and nature of the breach using advanced machine learning algorithms and threat intelligence.',
       subPoints: [
-        'Logs out all devices immediately',
-        'Resets compromised credentials',
-        'Recovers deleted or hidden data'
+        'Classifies attack type and potential data exposure',
+        'Performs impact analysis on connected accounts',
+        'Establishes timeline of compromise with AI forensics'
       ]
     },
     {
       id: 3,
+      title: 'Intelligent Recovery Planning',
+      icon: <FileSearch className="h-6 w-6 text-cyberguard-primary" />,
+      description: 'The system creates a personalized recovery strategy based on breach specifics and your security priorities.',
+      subPoints: [
+        'Generates step-by-step remediation plan',
+        'Prioritizes critical accounts and sensitive data',
+        'Optimizes recovery sequence to minimize disruption'
+      ]
+    },
+    {
+      id: 4,
+      title: 'One-Click Recovery Execution',
+      icon: <RefreshCw className="h-6 w-6 text-cyberguard-primary" />,
+      description: 'Our AI system automatically executes the recovery plan, revoking suspicious sessions, resetting compromised credentials, and restoring altered settings.',
+      subPoints: [
+        'Terminates all unauthorized access points instantly',
+        'Resets and rotates compromised credentials',
+        'Recovers deleted or hidden data from secure backups'
+      ]
+    },
+    {
+      id: 5,
       title: 'Post-Recovery Protection',
       icon: <Lock className="h-6 w-6 text-cyberguard-primary" />,
-      description: 'After recovery, our AI recommends personalized security improvements like enabling passwordless login, setting up backup methods, and removing malicious emails.',
+      description: 'After recovery, our AI recommends personalized security improvements and implements advanced protection measures against future attacks.',
       subPoints: [
-        'Enables advanced security features',
-        'Sets up continuous monitoring',
-        'Provides ongoing threat protection'
+        'Enables adaptive authentication based on risk scoring',
+        'Sets up continuous monitoring with anomaly alerts',
+        'Implements zero-trust security framework'
       ]
     }
   ];
@@ -60,7 +82,7 @@ const RecoveryStepFlow = () => {
               {/* Content */}
               <Card className={`w-full md:w-[calc(100%-3rem)] p-5 md:ml-6 mt-4 md:mt-0 ${
                 index % 2 !== 0 ? 'md:mr-6 md:ml-0' : ''
-              }`}>
+              } hover:shadow-md transition-all duration-300`}>
                 <h3 className="font-bold text-lg mb-2 flex items-center">
                   <span className="text-cyberguard-primary mr-2">Step {step.id}:</span> {step.title}
                 </h3>
@@ -81,10 +103,13 @@ const RecoveryStepFlow = () => {
       
       {/* Final step */}
       <div className="relative mt-12 text-center">
-        <div className="inline-flex items-center justify-center p-2 rounded-full bg-green-500 text-white z-10 relative">
-          <Check className="h-6 w-6" />
+        <div className="inline-flex items-center justify-center p-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white z-10 relative">
+          <Zap className="h-6 w-6" />
         </div>
-        <div className="mt-2 font-medium">Recovery Complete</div>
+        <div className="mt-3">
+          <h4 className="font-medium text-lg">Recovery Complete</h4>
+          <p className="text-sm text-gray-600">Your account is now secured with enhanced protection</p>
+        </div>
       </div>
     </div>
   );
