@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -76,7 +77,7 @@ const RecoveryFlow = () => {
     
     // Phase 3: Email risk analysis
     setScanPhase('Checking for unauthorized access...');
-    let emailRiskResult = { riskLevel: 'low' as const, reasons: [''] };
+    let emailRiskResult = { riskLevel: 'low' as 'low' | 'medium' | 'high', reasons: [''] };
     try {
       emailRiskResult = analyzeEmailRisk(user.email);
     } catch (error) {
@@ -444,3 +445,4 @@ const RecoveryFlow = () => {
 };
 
 export default RecoveryFlow;
+
