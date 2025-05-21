@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
-import { Shield, Globe, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Globe, Lock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import * as vpnService from '@/services/vpnService';
+import * as authService from '@/services/authService';
 
 interface VPNStatusProps {
   className?: string;
@@ -13,43 +15,138 @@ export default function VPNStatus({ className }: VPNStatusProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [selectedServer, setSelectedServer] = useState('auto');
+  const [availableServers, setAvailableServers] = useState<vpnService.VpnServer[]>([]);
+  const [currentServer, setCurrentServer] = useState<vpnService.VpnServer | null>(null);
+  const [ipAddress, setIpAddress] = useState<string | null>(null);
+  const [dataUsage, setDataUsage] = useState({ sent: 0, received: 0 });
+  const isPremium = authService.isPremiumUser();
   
-  const servers = [
-    { id: 'auto', name: 'Auto (AI Optimized)', ping: '45ms' },
-    { id: 'us', name: 'United States', ping: '120ms' },
-    { id: 'uk', name: 'United Kingdom', ping: '150ms' },
-    { id: 'de', name: 'Germany', ping: '90ms' },
-  ];
+  useEffect(() => {
+    // Get available servers based on user subscription
+    const servers = vpnService.getAvailableServers();
+    setAvailableServers(servers);
+    
+    // Check if there's already an active connection
+    const status = vpnService.getVpnStatus();
+    if (status.connected && status.server) {
+      setIsConnected(true);
+      setCurrentServer(status.server);
+      setSelectedServer(status.server.id);
+      setIpAddress(status.ipAddress);
+      setDataUsage(status.dataUsage);
+      
+      // Start updating data usage
+      const interval = setInterval(() => {
+        const updatedStatus = vpnService.getVpnStatus();
+        setDataUsage(updatedStatus.dataUsage);
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, []);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (isConnected) {
-      setIsConnected(false);
-      toast.success('VPN Disconnected', {
-        description: 'Your connection is no longer secured by CyberGuard VPN',
-      });
+      try {
+        await vpnService.disconnectVpn();
+        setIsConnected(false);
+        setCurrentServer(null);
+        setIpAddress(null);
+        
+        toast.success('VPN Disconnected', {
+          description: 'Your connection is no longer secured by CyberGuard VPN',
+        });
+      } catch (error) {
+        toast.error('Disconnect Failed', {
+          description: 'Unable to disconnect from VPN',
+        });
+      }
     } else {
       setConnecting(true);
-      setTimeout(() => {
+      
+      try {
+        const status = await vpnService.connectVpn(selectedServer);
         setIsConnected(true);
-        setConnecting(false);
+        setCurrentServer(status.server);
+        setIpAddress(status.ipAddress);
+        
         toast.success('VPN Connected', {
-          description: `Your connection is now secured through ${servers.find(s => s.id === selectedServer)?.name}`,
+          description: `Your connection is now secured through ${status.server?.name}`,
         });
-      }, 1500);
+        
+        // Start updating data usage
+        const interval = setInterval(() => {
+          const updatedStatus = vpnService.getVpnStatus();
+          setDataUsage(updatedStatus.dataUsage);
+        }, 1000);
+        
+        return () => clearInterval(interval);
+      } catch (error) {
+        toast.error('Connection Failed', {
+          description: error instanceof Error ? error.message : 'Unable to connect to VPN',
+        });
+      } finally {
+        setConnecting(false);
+      }
     }
   };
 
-  const handleServerChange = (serverId: string) => {
+  const handleServerChange = async (serverId: string) => {
+    const server = availableServers.find(s => s.id === serverId);
+    if (!server) return;
+    
+    // Check if server is premium and user is not premium
+    if (server.premium && !isPremium) {
+      toast.error('Premium Server', {
+        description: 'This server is only available with a premium subscription',
+      });
+      return;
+    }
+    
     setSelectedServer(serverId);
+    
     if (isConnected) {
       setConnecting(true);
-      setTimeout(() => {
-        setConnecting(false);
+      
+      try {
+        // Disconnect from current server
+        await vpnService.disconnectVpn();
+        
+        // Connect to new server
+        const status = await vpnService.connectVpn(serverId);
+        setCurrentServer(status.server);
+        setIpAddress(status.ipAddress);
+        
         toast.success('VPN Server Changed', {
-          description: `Connected to ${servers.find(s => s.id === serverId)?.name}`,
+          description: `Connected to ${status.server?.name}`,
         });
-      }, 1000);
+      } catch (error) {
+        toast.error('Server Change Failed', {
+          description: error instanceof Error ? error.message : 'Unable to change VPN server',
+        });
+        
+        // Try to reconnect to previous server
+        if (currentServer) {
+          try {
+            await vpnService.connectVpn(currentServer.id);
+          } catch {
+            // If reconnection fails, mark as disconnected
+            setIsConnected(false);
+            setCurrentServer(null);
+            setIpAddress(null);
+          }
+        }
+      } finally {
+        setConnecting(false);
+      }
     }
+  };
+
+  // Format data usage
+  const formatDataUsage = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
@@ -75,17 +172,25 @@ export default function VPNStatus({ className }: VPNStatusProps) {
           </span>
         </div>
         {isConnected && !connecting && (
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-sm font-medium">IP Address</span>
-            <span className="text-sm">192.168.●●.●●</span>
-          </div>
+          <>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-sm font-medium">IP Address</span>
+              <span className="text-sm">{ipAddress}</span>
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-sm font-medium">Data Usage</span>
+              <span className="text-sm">
+                ↑ {formatDataUsage(dataUsage.sent)} • ↓ {formatDataUsage(dataUsage.received)}
+              </span>
+            </div>
+          </>
         )}
       </div>
 
       <div className="mb-4">
         <h4 className="text-sm font-medium mb-2">Server Location (Free)</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {servers.map((server) => (
+          {availableServers.filter(server => !server.premium).map((server) => (
             <div 
               key={server.id}
               className={`p-3 rounded-lg border cursor-pointer transition-all ${
@@ -107,15 +212,46 @@ export default function VPNStatus({ className }: VPNStatusProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 mb-4">
-        <div>
-          <p className="text-sm font-medium">Premium VPN Features</p>
-          <p className="text-xs text-gray-500">50+ Countries, No Speed Limits</p>
+      {/* Show premium servers if premium user */}
+      {isPremium && (
+        <div className="mb-4">
+          <h4 className="text-sm font-medium mb-2">Premium Servers</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {availableServers.filter(server => server.premium).map((server) => (
+              <div 
+                key={server.id}
+                className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                  selectedServer === server.id 
+                    ? 'border-cyberguard-primary bg-cyberguard-primary/5' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => handleServerChange(server.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Globe className="w-4 h-4 mr-2 text-gray-500" />
+                    <span className="text-sm">{server.name}</span>
+                  </div>
+                  <span className="text-xs text-gray-500">{server.ping}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <Button variant="outline" size="sm" className="text-cyberguard-primary">
-          Upgrade
-        </Button>
-      </div>
+      )}
+
+      {/* Premium upgrade banner (for free users) */}
+      {!isPremium && (
+        <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 mb-4">
+          <div>
+            <p className="text-sm font-medium">Premium VPN Features</p>
+            <p className="text-xs text-gray-500">50+ Countries, No Speed Limits</p>
+          </div>
+          <Button variant="outline" size="sm" className="text-cyberguard-primary">
+            Upgrade
+          </Button>
+        </div>
+      )}
 
       <Button 
         className="w-full"

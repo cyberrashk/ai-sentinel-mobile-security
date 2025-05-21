@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Lock, User, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import * as authService from '@/services/authService';
 
 interface LoginProps {
   className?: string;
@@ -17,32 +18,43 @@ export default function Login({ className, onLogin }: LoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<'login' | 'register'>('login');
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
     setIsLoading(true);
     
-    // Simulate authentication
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email && password) {
-        toast.success(view === 'login' ? 'Login Successful' : 'Account Created', {
-          description: view === 'login' 
-            ? 'Welcome back to CyberGuard AI' 
-            : 'Your secure account has been created'
+    try {
+      let user;
+      
+      if (view === 'login') {
+        user = await authService.login(email, password);
+        toast.success('Login Successful', {
+          description: 'Welcome back to CyberGuard AI'
         });
-        
-        if (onLogin) {
-          onLogin({
-            name: email.split('@')[0],
-            email
-          });
-        }
       } else {
-        toast.error('Authentication Failed', {
-          description: 'Please check your credentials and try again'
+        // Use email username as name if registering
+        const name = email.split('@')[0];
+        user = await authService.register(email, password, name);
+        toast.success('Account Created', {
+          description: 'Your secure account has been created'
         });
       }
-    }, 1500);
+      
+      if (onLogin) {
+        onLogin(user);
+      }
+    } catch (error) {
+      toast.error('Authentication Failed', {
+        description: error instanceof Error ? error.message : 'Please check your credentials and try again'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

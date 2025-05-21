@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VPNStatus from '@/components/VPNStatus';
 import AntivirusStatus from '@/components/AntivirusStatus';
 import Login from '@/components/Login';
 import UserProfile from '@/components/UserProfile';
+import * as authService from '@/services/authService';
 
 interface SecurityTabsProps {
   isLoggedIn: boolean;
@@ -19,6 +20,14 @@ const SecurityTabs: React.FC<SecurityTabsProps> = ({
   onLogin, 
   onLogout 
 }) => {
+  // Check if user is already logged in from session
+  useEffect(() => {
+    const sessionUser = authService.getCurrentUser();
+    if (sessionUser && !isLoggedIn) {
+      onLogin(sessionUser);
+    }
+  }, [isLoggedIn, onLogin]);
+  
   return (
     <section className="mb-8">
       <Tabs defaultValue="vpn" className="w-full">

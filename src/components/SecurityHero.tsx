@@ -2,7 +2,7 @@
 import React from 'react';
 import { Shield } from 'lucide-react';
 
-const SecurityHero: React.FC = () => {
+const SecurityHero = () => {
   return (
     <section className="mb-8">
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-cyberguard-primary to-cyberguard-secondary text-white">

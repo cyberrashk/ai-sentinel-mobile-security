@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { User, ShieldCheck } from 'lucide-react';
+import { User, ShieldCheck, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import * as authService from '@/services/authService';
 
 interface UserProfileProps {
   user: {
@@ -13,7 +14,10 @@ interface UserProfileProps {
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
+  const isPremium = authService.isPremiumUser();
+  
   const handleLogout = () => {
+    authService.logout();
     onLogout();
     toast.info('Logged Out', {
       description: 'You have been securely logged out'
@@ -27,7 +31,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
           <User className="w-10 h-10 text-cyberguard-primary" />
         </div>
         <h3 className="text-xl font-bold mb-2">{user.name}</h3>
-        <p className="text-gray-500 mb-6">{user.email}</p>
+        <p className="text-gray-500 mb-2">{user.email}</p>
+        
+        <div className="mb-6 flex items-center">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+            isPremium 
+              ? 'bg-cyberguard-primary/10 text-cyberguard-primary' 
+              : 'bg-gray-100 text-gray-600'
+          }`}>
+            {isPremium ? (
+              <>
+                <Shield className="w-3 h-3 mr-1" />
+                Premium
+              </>
+            ) : (
+              'Free Plan'
+            )}
+          </span>
+        </div>
         
         <div className="bg-gray-50 rounded-lg p-4 border w-full mb-4">
           <h4 className="font-medium mb-2">Your Security Status</h4>
@@ -40,6 +61,28 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
             Enable 2FA for enhanced security.
           </p>
         </div>
+        
+        {!isPremium && (
+          <div className="bg-cyberguard-alert/10 rounded-lg p-4 border border-cyberguard-alert/20 w-full mb-4">
+            <div className="flex items-start">
+              <AlertTriangle className="w-5 h-5 text-cyberguard-alert mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-sm mb-1">Limited Protection</h4>
+                <p className="text-xs text-gray-700">
+                  Upgrade to Premium for complete protection including real-time scanning, 
+                  advanced VPN features, and more.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 w-full border-cyberguard-alert/50 text-cyberguard-alert hover:bg-cyberguard-alert/5"
+                >
+                  Upgrade to Premium
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <Button 
           variant="outline" 

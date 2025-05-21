@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
-import { Search, Shield, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Shield, Clock, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
+import * as antivirusService from '@/services/antivirusService';
+import * as authService from '@/services/authService';
 
 interface AntivirusStatusProps {
   className?: string;
@@ -15,48 +17,96 @@ export default function AntivirusStatus({ className }: AntivirusStatusProps) {
   const [lastScanDate, setLastScanDate] = useState<string | null>(null);
   const [threatCount, setThreatCount] = useState(0);
   const [scanType, setScanType] = useState<'quick' | 'deep'>('quick');
-
-  const startScan = (type: 'quick' | 'deep') => {
-    setScanningStatus('scanning');
-    setScanProgress(0);
-    setScanType(type);
-    
-    // Simulate scan progress
-    const duration = type === 'quick' ? 5000 : 10000;
+  const [currentScan, setCurrentScan] = useState<antivirusService.ScanResult | null>(null);
+  const [antivirusStatus, setAntivirusStatus] = useState(antivirusService.getAntivirusStatus());
+  
+  const isPremium = authService.isPremiumUser();
+  
+  // Poll for scan updates
+  useEffect(() => {
     const interval = setInterval(() => {
-      setScanProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setScanningStatus('completed');
-          setLastScanDate(new Date().toLocaleString());
-          
-          // Random threats found (for demo)
-          const threats = Math.floor(Math.random() * 3);
-          setThreatCount(threats);
-          
-          if (threats > 0) {
-            toast.warning(`${threats} Threat${threats > 1 ? 's' : ''} Detected`, {
-              description: 'CyberGuard AI has found and quarantined potential threats',
-              action: {
-                label: 'View Details',
-                onClick: () => console.log('View threat details')
-              }
-            });
-          } else {
-            toast.success('Scan Completed', {
-              description: 'No threats found on your device',
-            });
-          }
-          
-          return 100;
-        }
+      // Check for active scan
+      const scan = antivirusService.getCurrentScan();
+      
+      if (scan) {
+        // Update state with scan progress
+        setCurrentScan(scan);
+        setScanningStatus('scanning');
+        setScanType(scan.type as 'quick' | 'deep');
         
-        return prev + Math.random() * 5;
-      });
+        // Calculate scan progress
+        const totalItems = scan.type === 'quick' ? 2000 : scan.type === 'deep' ? 10000 : 5000;
+        const progress = Math.min(100, Math.floor((scan.itemsScanned / totalItems) * 100));
+        setScanProgress(progress);
+        
+        setThreatCount(scan.threats.length);
+      } else if (scanningStatus === 'scanning') {
+        // Scan just completed
+        setScanningStatus('completed');
+        
+        // Update antivirus status to get last scan
+        const status = antivirusService.getAntivirusStatus();
+        setAntivirusStatus(status);
+        
+        if (status.lastScan) {
+          setLastScanDate(status.lastScan.endTime?.toLocaleString() || null);
+          setThreatCount(status.lastScan.threats.length);
+          
+          // Show scan completed notification
+          if (status.lastScan.status === 'completed') {
+            if (status.lastScan.threats.length > 0) {
+              toast.warning(`${status.lastScan.threats.length} Threat${status.lastScan.threats.length > 1 ? 's' : ''} Detected`, {
+                description: 'CyberGuard AI has found potential security threats',
+                action: {
+                  label: 'View Details',
+                  onClick: () => console.log('View threat details')
+                }
+              });
+            } else {
+              toast.success('Scan Completed', {
+                description: 'No threats found on your device',
+              });
+            }
+          }
+        }
+      }
     }, 200);
+    
+    return () => clearInterval(interval);
+  }, [scanningStatus]);
+  
+  // Initialize with existing data
+  useEffect(() => {
+    const status = antivirusService.getAntivirusStatus();
+    setAntivirusStatus(status);
+    
+    if (status.lastScan) {
+      setLastScanDate(status.lastScan.endTime?.toLocaleString() || null);
+      setThreatCount(status.lastScan.threats.length);
+    }
+  }, []);
+
+  const startScan = async (type: 'quick' | 'deep') => {
+    try {
+      setScanningStatus('scanning');
+      setScanProgress(0);
+      setScanType(type);
+      
+      await antivirusService.startScan(type);
+      
+      toast.info(`${type === 'quick' ? 'Quick' : 'Deep'} Scan Started`, {
+        description: `Scanning your device for security threats`,
+      });
+    } catch (error) {
+      toast.error('Scan Failed', {
+        description: 'Unable to start the security scan',
+      });
+      setScanningStatus('idle');
+    }
   };
 
   const cancelScan = () => {
+    antivirusService.cancelScan();
     setScanningStatus('idle');
     setScanProgress(0);
     toast.info('Scan Cancelled', {
@@ -86,6 +136,7 @@ export default function AntivirusStatus({ className }: AntivirusStatusProps) {
           <div className="flex justify-between">
             <span className="text-xs text-gray-500">
               {scanType === 'quick' ? 'Scanning critical areas...' : 'Performing deep system scan...'}
+              {threatCount > 0 && ` (${threatCount} threats found)`}
             </span>
             <Button variant="outline" size="sm" onClick={cancelScan}>Cancel</Button>
           </div>
@@ -149,15 +200,59 @@ export default function AntivirusStatus({ className }: AntivirusStatusProps) {
         </div>
       </div>
       
-      <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 mb-4">
-        <div>
-          <p className="text-sm font-medium">Premium AI Protection</p>
-          <p className="text-xs text-gray-500">Real-time scanning, zero-day protection</p>
+      {/* Protection status */}
+      <div className="mb-4 p-4 rounded-lg border">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <Shield className={`w-4 h-4 mr-2 ${isPremium ? 'text-cyberguard-success' : 'text-gray-400'}`} />
+            <h4 className="font-medium text-sm">Real-time Protection</h4>
+          </div>
+          <div>
+            {isPremium ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyberguard-success/10 text-cyberguard-success">
+                Active
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                Premium
+              </span>
+            )}
+          </div>
         </div>
-        <Button variant="outline" size="sm" className="text-cyberguard-primary">
-          Upgrade
-        </Button>
+        <p className="text-xs text-gray-500">
+          {isPremium 
+            ? 'Active protection against malware, ransomware, and zero-day threats.' 
+            : 'Upgrade to Premium for real-time protection against emerging threats.'}
+        </p>
       </div>
+      
+      {/* Virus definitions */}
+      <div className="mb-4 p-4 rounded-lg border">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-medium text-sm">Virus Definitions</h4>
+            <p className="text-xs text-gray-500">
+              Version {antivirusStatus.definitions.version} • Updated {
+                new Date(antivirusStatus.definitions.lastUpdated).toLocaleDateString()
+              }
+            </p>
+          </div>
+          <Button variant="outline" size="sm">Update</Button>
+        </div>
+      </div>
+      
+      {/* Premium features banner */}
+      {!isPremium && (
+        <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 mb-4">
+          <div>
+            <p className="text-sm font-medium">Premium AI Protection</p>
+            <p className="text-xs text-gray-500">Real-time scanning, zero-day protection</p>
+          </div>
+          <Button variant="outline" size="sm" className="text-cyberguard-primary">
+            Upgrade
+          </Button>
+        </div>
+      )}
       
       <Button 
         className="w-full"
