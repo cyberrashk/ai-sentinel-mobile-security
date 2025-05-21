@@ -43,19 +43,19 @@ const genericBreaches = [
     source: 'Data Aggregator Breach',
     dateLeaked: new Date('2023-09-10'),
     dataExposed: ['email', 'name'],
-    severity: 'low'
+    severity: 'low' as const
   },
   {
     source: 'E-commerce Platform',
     dateLeaked: new Date('2022-12-01'),
     dataExposed: ['email', 'password', 'address'],
-    severity: 'high'
+    severity: 'high' as const
   },
   {
     source: 'Social Media Platform',
     dateLeaked: new Date('2023-03-18'),
     dataExposed: ['email', 'password', 'personal info'],
-    severity: 'critical'
+    severity: 'critical' as const
   }
 ];
 
