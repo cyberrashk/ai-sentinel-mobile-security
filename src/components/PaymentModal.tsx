@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CreditCard, Shield, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { createPaymentSession } from '@/services/paymentService';
+import { createPaymentSession, processPayment } from '@/services/paymentService';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -22,32 +22,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   planFeatures
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
-  const handlePayment = async () => {
+  const handleInitiatePayment = async () => {
     setIsProcessing(true);
     
     try {
       const result = await createPaymentSession(planType);
       
       if (result.success) {
-        // In a real app, redirect to Stripe checkout
-        toast.success('Redirecting to payment...', {
-          description: 'You will be redirected to secure checkout'
+        setShowPaymentForm(true);
+        toast.success('Payment session created', {
+          description: 'Please enter your payment details'
         });
-        
-        // Simulate redirect to payment processor
-        setTimeout(() => {
-          // Open payment URL in new tab (mock)
-          window.open(result.paymentUrl, '_blank');
-          onClose();
-          
-          // Simulate successful payment after 3 seconds
-          setTimeout(() => {
-            toast.success('Payment Successful!', {
-              description: `Welcome to CyberGuard ${planType === 'premium' ? 'Premium' : 'Pro'}!`
-            });
-          }, 3000);
-        }, 1000);
       }
     } catch (error) {
       toast.error('Payment Error', {
@@ -58,8 +45,39 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
+  const handleProcessPayment = async () => {
+    setIsProcessing(true);
+    
+    try {
+      // Simulate payment processing with mock data
+      const paymentResult = await processPayment('mock_session', {
+        cardNumber: '****-****-****-1234',
+        planType
+      });
+      
+      if (paymentResult.success) {
+        toast.success('Payment Successful!', {
+          description: `Welcome to CyberGuard ${planType === 'premium' ? 'Premium' : 'Pro'}!`
+        });
+        onClose();
+        setShowPaymentForm(false);
+      }
+    } catch (error) {
+      toast.error('Payment Failed', {
+        description: 'Your payment could not be processed. Please try again.'
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleClose = () => {
+    setShowPaymentForm(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center">
@@ -84,29 +102,60 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             ))}
           </div>
           
-          <div className="border-t pt-4">
-            <Button 
-              className="w-full bg-cyberguard-primary hover:bg-cyberguard-primary/90"
-              onClick={handlePayment}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Pay with Card
-                </>
-              )}
-            </Button>
-            
-            <div className="text-xs text-gray-500 text-center mt-2">
-              Secure payment powered by Stripe
+          {!showPaymentForm ? (
+            <div className="border-t pt-4">
+              <Button 
+                className="w-full bg-cyberguard-primary hover:bg-cyberguard-primary/90"
+                onClick={handleInitiatePayment}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Setting up...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Continue to Payment
+                  </>
+                )}
+              </Button>
             </div>
-          </div>
+          ) : (
+            <div className="border-t pt-4 space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Mock Payment Details</h4>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div>Card: **** **** **** 1234</div>
+                  <div>Expiry: 12/25</div>
+                  <div>CVC: ***</div>
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full bg-cyberguard-primary hover:bg-cyberguard-primary/90"
+                onClick={handleProcessPayment}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing Payment...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Complete Payment
+                  </>
+                )}
+              </Button>
+              
+              <div className="text-xs text-gray-500 text-center">
+                This is a demo payment - no real charges will be made
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

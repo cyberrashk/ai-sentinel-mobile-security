@@ -4,13 +4,23 @@ export const createPaymentSession = async (planType: 'premium' | 'pro') => {
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Mock payment URL - in real implementation, this would be a Stripe checkout URL
-  const mockPaymentUrl = `https://checkout.stripe.com/pay/${planType}-plan-${Date.now()}`;
-  
+  // Return success without external URL - we'll handle payment in the modal
   return {
     success: true,
-    paymentUrl: mockPaymentUrl,
-    sessionId: `session_${Date.now()}`
+    sessionId: `session_${Date.now()}`,
+    planType
+  };
+};
+
+export const processPayment = async (sessionId: string, paymentDetails: any) => {
+  // Simulate payment processing
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Mock successful payment
+  return {
+    success: true,
+    status: 'completed',
+    transactionId: `txn_${Date.now()}`
   };
 };
 
