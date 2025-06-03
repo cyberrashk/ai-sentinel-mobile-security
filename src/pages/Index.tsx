@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import SecurityStatus from '@/components/SecurityStatus';
@@ -7,12 +6,18 @@ import SecureVault from '@/components/SecureVault';
 import AIAssistant from '@/components/AIAssistant';
 import FeatureGrid from '@/components/FeatureGrid';
 import PremiumFeatures from '@/components/PremiumFeatures';
+import AlertCenter from '@/components/AlertCenter';
+import DarkWebMonitor from '@/components/DarkWebMonitor';
+import FamilyProtection from '@/components/FamilyProtection';
+import FinancialGuard from '@/components/FinancialGuard';
+import EncryptedChat from '@/components/EncryptedChat';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { ShieldCheck, Shield } from 'lucide-react';
 import PaymentModal from '@/components/PaymentModal';
 import { checkUpgradeStatus } from '@/services/paymentService';
+import * as authService from '@/services/authService';
 
 const Index = () => {
   const [securityStatus, setSecurityStatus] = useState<'protected' | 'warning' | 'danger'>('protected');
@@ -20,6 +25,7 @@ const Index = () => {
   const [isProPaymentModalOpen, setIsProPaymentModalOpen] = useState(false);
   
   const upgradeStatus = checkUpgradeStatus();
+  const isPremium = authService.isPremiumUser();
 
   const handleScan = () => {
     // In a real app, this would perform an actual scan
@@ -126,14 +132,49 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Vault and Assistant Section */}
-        <section className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <SecureVault />
-          </div>
-          <div>
-            <AIAssistant />
-          </div>
+        {/* Alert Center */}
+        <section className="mb-8">
+          <AlertCenter />
+        </section>
+
+        {/* Premium Features Showcase */}
+        <section className="mb-8">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="darkweb">Dark Web</TabsTrigger>
+              <TabsTrigger value="family">Family</TabsTrigger>
+              <TabsTrigger value="financial">Financial</TabsTrigger>
+              <TabsTrigger value="chat">Encrypted Chat</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <SecureVault />
+                </div>
+                <div>
+                  <AIAssistant />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="darkweb" className="mt-6">
+              <DarkWebMonitor />
+            </TabsContent>
+            
+            <TabsContent value="family" className="mt-6">
+              <FamilyProtection />
+            </TabsContent>
+            
+            <TabsContent value="financial" className="mt-6">
+              <FinancialGuard />
+            </TabsContent>
+            
+            <TabsContent value="chat" className="mt-6">
+              <EncryptedChat />
+            </TabsContent>
+          </Tabs>
         </section>
 
         {/* Premium Features Section */}
