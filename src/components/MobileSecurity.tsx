@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { 
-  smartphone, 
+  Smartphone, 
   Shield, 
   Lock, 
   WifiOff, 
@@ -75,7 +75,7 @@ const MobileSecurity = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <div className="w-12 h-12 rounded-full bg-cyberguard-primary/10 flex items-center justify-center mr-4">
-              <smartphone className="w-6 h-6 text-cyberguard-primary" />
+              <Smartphone className="w-6 h-6 text-cyberguard-primary" />
             </div>
             <div>
               <h2 className="text-2xl font-bold">Mobile Security Center</h2>
