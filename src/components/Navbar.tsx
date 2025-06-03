@@ -1,8 +1,15 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Bell, Shield } from 'lucide-react';
+import { Bell, Shield, MoreVertical, Home, Lock, RefreshCw } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export default function Navbar() {
   const location = useLocation();
@@ -31,6 +38,12 @@ export default function Navbar() {
             >
               Security
             </Link>
+            <Link 
+              to="/recovery" 
+              className={`text-sm font-medium ${location.pathname === '/recovery' ? 'text-cyberguard-primary' : 'hover:text-cyberguard-primary'}`}
+            >
+              Recovery
+            </Link>
           </div>
           
           <div className="flex items-center space-x-3">
@@ -38,6 +51,41 @@ export default function Navbar() {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-cyberguard-alert rounded-full"></span>
             </Button>
+            
+            {/* Three Dots Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                  <MoreVertical className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link to="/" className="flex items-center w-full">
+                    <Home className="w-4 h-4 mr-2" />
+                    Home
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/security" className="flex items-center w-full">
+                    <Lock className="w-4 h-4 mr-2" />
+                    Security
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/recovery" className="flex items-center w-full">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Recovery
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-cyberguard-primary font-medium">
+                  <Shield className="w-4 h-4 mr-2" />
+                  Upgrade to Pro
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <Button size="sm" className="bg-cyberguard-primary hover:bg-cyberguard-primary/90 text-white">
               Upgrade to Pro
             </Button>
@@ -47,3 +95,6 @@ export default function Navbar() {
     </nav>
   );
 }
+</DropdownMenuContent>
+```
+
