@@ -8,6 +8,7 @@ import VPNStatus from '@/components/VPNStatus';
 import AntivirusStatus from '@/components/AntivirusStatus';
 import Login from '@/components/Login';
 import UserProfile from '@/components/UserProfile';
+import MobileSecurity from '@/components/MobileSecurity';
 import * as authService from '@/services/authService';
 
 interface SecurityTabsProps {
@@ -34,9 +35,10 @@ const SecurityTabs: React.FC<SecurityTabsProps> = ({
   return (
     <section className="mb-8">
       <Tabs defaultValue="vpn" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="vpn">Smart VPN</TabsTrigger>
           <TabsTrigger value="antivirus">AI Antivirus</TabsTrigger>
+          <TabsTrigger value="mobile">Mobile Security</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
         </TabsList>
         
@@ -46,6 +48,10 @@ const SecurityTabs: React.FC<SecurityTabsProps> = ({
         
         <TabsContent value="antivirus" className="mt-6">
           <AntivirusStatus />
+        </TabsContent>
+        
+        <TabsContent value="mobile" className="mt-6">
+          <MobileSecurity />
         </TabsContent>
         
         <TabsContent value="account" className="mt-6">
