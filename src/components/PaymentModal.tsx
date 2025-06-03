@@ -23,20 +23,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
 
   const handleInitiatePayment = async () => {
+    console.log('Initiating payment for plan:', planType);
     setIsProcessing(true);
     
     try {
       const result = await createPaymentSession(planType);
+      console.log('Payment session result:', result);
       
       if (result.success) {
+        setSessionId(result.sessionId);
         setShowPaymentForm(true);
         toast.success('Payment session created', {
           description: 'Please enter your payment details'
         });
+      } else {
+        throw new Error('Failed to create payment session');
       }
     } catch (error) {
+      console.error('Payment initialization error:', error);
       toast.error('Payment Error', {
         description: 'Failed to initialize payment. Please try again.'
       });
@@ -46,23 +53,41 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   const handleProcessPayment = async () => {
+    console.log('Processing payment for session:', sessionId);
     setIsProcessing(true);
     
     try {
-      // Simulate payment processing with mock data
-      const paymentResult = await processPayment('mock_session', {
+      const paymentResult = await processPayment(sessionId, {
         cardNumber: '****-****-****-1234',
-        planType
+        planType,
+        amount: planPrice
       });
+      
+      console.log('Payment result:', paymentResult);
       
       if (paymentResult.success) {
         toast.success('Payment Successful!', {
           description: `Welcome to CyberGuard ${planType === 'premium' ? 'Premium' : 'Pro'}!`
         });
-        onClose();
+        
+        // Store upgrade status
+        localStorage.setItem('cyberguard_plan', planType);
+        localStorage.setItem('cyberguard_upgrade_date', new Date().toISOString());
+        
+        // Reset modal state
         setShowPaymentForm(false);
+        setSessionId('');
+        onClose();
+        
+        // Refresh page to update UI
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        throw new Error('Payment processing failed');
       }
     } catch (error) {
+      console.error('Payment processing error:', error);
       toast.error('Payment Failed', {
         description: 'Your payment could not be processed. Please try again.'
       });
@@ -73,6 +98,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const handleClose = () => {
     setShowPaymentForm(false);
+    setSessionId('');
     onClose();
   };
 
@@ -130,6 +156,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   <div>Card: **** **** **** 1234</div>
                   <div>Expiry: 12/25</div>
                   <div>CVC: ***</div>
+                  <div>Plan: {planType}</div>
+                  <div>Amount: {planPrice}</div>
                 </div>
               </div>
               
@@ -146,7 +174,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Complete Payment
+                    Complete Payment ({planPrice})
                   </>
                 )}
               </Button>

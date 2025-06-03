@@ -1,35 +1,70 @@
 
-// Mock payment service - in a real app, this would integrate with Stripe
+// Enhanced mock payment service with better error handling and logging
 export const createPaymentSession = async (planType: 'premium' | 'pro') => {
+  console.log('Creating payment session for plan:', planType);
+  
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Return success without external URL - we'll handle payment in the modal
+  // Generate a unique session ID
+  const sessionId = `session_${planType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  console.log('Payment session created:', sessionId);
+  
+  // Return success with session details
   return {
     success: true,
-    sessionId: `session_${Date.now()}`,
-    planType
+    sessionId,
+    planType,
+    timestamp: new Date().toISOString()
   };
 };
 
 export const processPayment = async (sessionId: string, paymentDetails: any) => {
-  // Simulate payment processing
+  console.log('Processing payment for session:', sessionId, 'with details:', paymentDetails);
+  
+  // Simulate payment processing delay
   await new Promise(resolve => setTimeout(resolve, 2000));
   
-  // Mock successful payment
+  // Generate transaction ID
+  const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  console.log('Payment processed successfully:', transactionId);
+  
+  // Mock successful payment (in real implementation, this would call Stripe)
   return {
     success: true,
     status: 'completed',
-    transactionId: `txn_${Date.now()}`
+    transactionId,
+    sessionId,
+    timestamp: new Date().toISOString(),
+    planType: paymentDetails.planType,
+    amount: paymentDetails.amount
   };
 };
 
 export const verifyPayment = async (sessionId: string) => {
-  // Simulate payment verification
+  console.log('Verifying payment for session:', sessionId);
+  
+  // Simulate verification delay
   await new Promise(resolve => setTimeout(resolve, 500));
   
   return {
     success: true,
-    status: 'completed'
+    status: 'completed',
+    verified: true,
+    timestamp: new Date().toISOString()
+  };
+};
+
+// Helper function to check if user has upgraded
+export const checkUpgradeStatus = () => {
+  const plan = localStorage.getItem('cyberguard_plan');
+  const upgradeDate = localStorage.getItem('cyberguard_upgrade_date');
+  
+  return {
+    isUpgraded: !!plan,
+    plan: plan || 'free',
+    upgradeDate: upgradeDate ? new Date(upgradeDate) : null
   };
 };

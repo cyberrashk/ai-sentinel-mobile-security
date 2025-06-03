@@ -6,14 +6,20 @@ import SecurityScanCard from '@/components/SecurityScanCard';
 import SecureVault from '@/components/SecureVault';
 import AIAssistant from '@/components/AIAssistant';
 import FeatureGrid from '@/components/FeatureGrid';
+import PremiumFeatures from '@/components/PremiumFeatures';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { ShieldCheck, Shield } from 'lucide-react';
+import PaymentModal from '@/components/PaymentModal';
+import { checkUpgradeStatus } from '@/services/paymentService';
 
 const Index = () => {
   const [securityStatus, setSecurityStatus] = useState<'protected' | 'warning' | 'danger'>('protected');
   const [statusMessage, setStatusMessage] = useState('Your device is secure and protected by CyberGuard AI');
+  const [isProPaymentModalOpen, setIsProPaymentModalOpen] = useState(false);
+  
+  const upgradeStatus = checkUpgradeStatus();
 
   const handleScan = () => {
     // In a real app, this would perform an actual scan
@@ -36,6 +42,15 @@ const Index = () => {
       });
     }
   };
+
+  const proFeatures = [
+    "100+ VPN Countries",
+    "Advanced AI Protection",
+    "Dark Web Monitoring",
+    "Family Protection Suite",
+    "Priority Support",
+    "$100K Identity Theft Insurance"
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -121,6 +136,11 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Premium Features Section */}
+        {!upgradeStatus.isUpgraded && (
+          <PremiumFeatures />
+        )}
+
         {/* Features Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -162,18 +182,36 @@ const Index = () => {
           </Tabs>
         </section>
         
-        {/* Upgrade Section */}
+        {/* Upgrade Section for Pro Plan */}
         <section className="mb-10">
           <div className="rounded-2xl border bg-gradient-to-br from-cyberguard-secondary/5 to-cyberguard-primary/10 p-8">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Upgrade to CyberGuard AI Pro</h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                {upgradeStatus.isUpgraded ? 
+                  `You're on CyberGuard ${upgradeStatus.plan.charAt(0).toUpperCase() + upgradeStatus.plan.slice(1)}!` :
+                  'Upgrade to CyberGuard AI Pro'
+                }
+              </h2>
               <p className="text-gray-600 mb-6">
-                Get advanced AI-powered protection including dark web monitoring, 
-                encrypted communications, and family safety features.
+                {upgradeStatus.isUpgraded ?
+                  'Enjoy all the advanced features and premium protection.' :
+                  'Get the ultimate protection with dark web monitoring, encrypted communications, and family safety features.'
+                }
               </p>
-              <Button size="lg" className="bg-cyberguard-primary hover:bg-cyberguard-primary/90 text-white">
-                Upgrade Now
-              </Button>
+              {!upgradeStatus.isUpgraded && (
+                <Button 
+                  size="lg" 
+                  className="bg-cyberguard-primary hover:bg-cyberguard-primary/90 text-white"
+                  onClick={() => setIsProPaymentModalOpen(true)}
+                >
+                  Upgrade to Pro - $9.99/month
+                </Button>
+              )}
+              {upgradeStatus.isUpgraded && upgradeStatus.upgradeDate && (
+                <p className="text-sm text-gray-500">
+                  Upgraded on {upgradeStatus.upgradeDate.toLocaleDateString()}
+                </p>
+              )}
             </div>
           </div>
         </section>
@@ -194,6 +232,15 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Pro Payment Modal */}
+      <PaymentModal
+        isOpen={isProPaymentModalOpen}
+        onClose={() => setIsProPaymentModalOpen(false)}
+        planType="pro"
+        planPrice="$9.99"
+        planFeatures={proFeatures}
+      />
     </div>
   );
 };
