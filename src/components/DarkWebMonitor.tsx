@@ -19,8 +19,9 @@ export default function DarkWebMonitor() {
   const user = authService.getCurrentUser();
   const isPremium = authService.isPremiumUser();
 
+  console.log(`DarkWebMonitor: user=${user?.email}, isPremium=${isPremium}`);
+
   useEffect(() => {
-    // Load previous scan results if any
     const savedBreaches = localStorage.getItem('darkweb_scan_results');
     const savedScanDate = localStorage.getItem('darkweb_last_scan');
     
@@ -34,14 +35,17 @@ export default function DarkWebMonitor() {
 
   const startDarkWebScan = async () => {
     if (!user) {
-      toast.error('Authentication Required', { description: 'Please login to scan the dark web' });
+      toast.error('Authentication Required', { 
+        description: 'Please login to scan the dark web' 
+      });
       return;
     }
 
+    console.log(`Starting dark web scan for ${user.email}`);
     setIsScanning(true);
     setScanProgress(0);
 
-    // Simulate scan progress
+    // Animate progress
     const interval = setInterval(() => {
       setScanProgress(prev => {
         if (prev >= 95) {
@@ -53,7 +57,6 @@ export default function DarkWebMonitor() {
     }, 300);
 
     try {
-      // Perform actual dark web scan
       const results = await darkWebService.scanDarkWeb(user.email);
       const riskAnalysis = darkWebService.analyzeEmailRisk(user.email);
       
@@ -62,7 +65,6 @@ export default function DarkWebMonitor() {
       setLastScan(new Date());
       setScanProgress(100);
       
-      // Save results
       localStorage.setItem('darkweb_scan_results', JSON.stringify(results));
       localStorage.setItem('darkweb_last_scan', new Date().toISOString());
       
@@ -76,7 +78,10 @@ export default function DarkWebMonitor() {
         });
       }
     } catch (error) {
-      toast.error('Scan Failed', { description: 'Unable to complete dark web scan' });
+      console.error('Dark web scan failed:', error);
+      toast.error('Scan Failed', { 
+        description: 'Unable to complete dark web scan. Please try again.' 
+      });
     } finally {
       setIsScanning(false);
       clearInterval(interval);
@@ -104,7 +109,13 @@ export default function DarkWebMonitor() {
           <p className="text-sm text-gray-500 mb-6">
             Upgrade to Pro to scan for your email, passwords, and personal data on the dark web
           </p>
-          <Button className="bg-cyberguard-primary hover:bg-cyberguard-primary/90">
+          <Button 
+            className="bg-cyberguard-primary hover:bg-cyberguard-primary/90"
+            onClick={() => {
+              authService.upgradeToPremium();
+              window.location.reload();
+            }}
+          >
             Upgrade to Pro
           </Button>
         </div>
@@ -181,7 +192,7 @@ export default function DarkWebMonitor() {
                 {breaches.map((breach) => (
                   <Alert key={breach.id} className="border-red-200 bg-red-50">
                     <AlertTriangle className="w-4 h-4 text-red-600" />
-                    <AlertTitle className="text-red-800">{breach.source} Breach</AlertTitle>
+                    <AlertTitle className="text-red-800">{breach.source}</AlertTitle>
                     <AlertDescription>
                       <div className="text-sm text-red-700">
                         <p className="mb-2">Date: {breach.dateLeaked.toLocaleDateString()}</p>

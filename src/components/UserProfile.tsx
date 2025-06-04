@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { User, ShieldCheck, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
     toast.info('Logged Out', {
       description: 'You have been securely logged out'
     });
+  };
+
+  const handleUpgrade = () => {
+    authService.upgradeToPremium();
+    setIsPaymentModalOpen(false);
+    // Force a page refresh to update premium status
+    setTimeout(() => window.location.reload(), 1000);
   };
 
   const premiumFeatures = [
@@ -67,7 +75,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
             </div>
             <p className="text-xs text-gray-500">
               Your account is secured with password protection. 
-              Enable 2FA for enhanced security.
+              {isPremium ? ' Premium security features are active.' : ' Enable 2FA for enhanced security.'}
             </p>
           </div>
           
@@ -85,7 +93,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
                     variant="outline" 
                     size="sm" 
                     className="mt-2 w-full border-cyberguard-alert/50 text-cyberguard-alert hover:bg-cyberguard-alert/5"
-                    onClick={() => setIsPaymentModalOpen(true)}
+                    onClick={handleUpgrade}
                   >
                     Upgrade to Premium
                   </Button>
