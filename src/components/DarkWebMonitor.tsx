@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +13,7 @@ export default function DarkWebMonitor() {
   const [scanProgress, setScanProgress] = useState(0);
   const [breaches, setBreaches] = useState<darkWebService.LeakedCredential[]>([]);
   const [lastScan, setLastScan] = useState<Date | null>(null);
-  const [emailRisk, setEmailRisk] = useState<any>(null);
+  const [riskAnalysis, setRiskAnalysis] = useState<darkWebService.RiskAnalysis | null>(null);
   
   const user = authService.getCurrentUser();
   const isPremium = authService.isPremiumUser();
@@ -58,10 +57,10 @@ export default function DarkWebMonitor() {
 
     try {
       const results = await darkWebService.scanDarkWeb(user.email);
-      const riskAnalysis = darkWebService.analyzeEmailRisk(user.email);
+      const riskAnalysisResult = await darkWebService.performRiskAnalysis(user.email);
       
       setBreaches(results);
-      setEmailRisk(riskAnalysis);
+      setRiskAnalysis(riskAnalysisResult);
       setLastScan(new Date());
       setScanProgress(100);
       
@@ -171,16 +170,19 @@ export default function DarkWebMonitor() {
             </div>
           )}
 
-          {emailRisk && (
-            <Alert className={`mb-4 ${getSeverityColor(emailRisk.riskLevel)}`}>
+          {riskAnalysis && (
+            <Alert className={`mb-4 ${getSeverityColor(riskAnalysis.overallRisk)}`}>
               <Shield className="w-4 h-4" />
-              <AlertTitle>Email Risk Assessment: {emailRisk.riskLevel.toUpperCase()}</AlertTitle>
+              <AlertTitle>Risk Assessment: {riskAnalysis.overallRisk.toUpperCase()}</AlertTitle>
               <AlertDescription>
-                <ul className="list-disc list-inside text-sm mt-2">
-                  {emailRisk.reasons.map((reason: string, index: number) => (
-                    <li key={index}>{reason}</li>
-                  ))}
-                </ul>
+                <div className="text-sm mt-2">
+                  <p className="mb-2">Risk Score: {riskAnalysis.riskScore}/100</p>
+                  <ul className="list-disc list-inside">
+                    {riskAnalysis.actionableSteps.slice(0, 3).map((step: string, index: number) => (
+                      <li key={index}>{step}</li>
+                    ))}
+                  </ul>
+                </div>
               </AlertDescription>
             </Alert>
           )}
