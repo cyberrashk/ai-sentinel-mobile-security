@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell, Shield, MoreVertical, Home, Lock, RefreshCw, User, LogOut, Mail, Chrome } from 'lucide-react';
@@ -15,6 +14,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -28,18 +28,19 @@ export default function Navbar() {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [generatedOTP, setGeneratedOTP] = useState('');
   
   const currentUser = authService.getCurrentUser();
   
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      // Simulate Google login
-      const mockGoogleUser = await authService.login('demo@cyberguard.ai', 'password123');
+      const user = await authService.googleLogin();
       toast.success('Google Login Successful', {
-        description: 'Welcome to CyberGuard AI'
+        description: `Welcome ${user.name}!`
       });
       setIsLoginOpen(false);
+      resetLoginState();
     } catch (error) {
       toast.error('Google Login Failed', {
         description: 'Please try again'
@@ -49,42 +50,58 @@ export default function Navbar() {
     }
   };
 
+  const resetLoginState = () => {
+    setLoginMethod(null);
+    setOtpSent(false);
+    setOtp('');
+    setEmail('');
+    setGeneratedOTP('');
+  };
+
   const handleEmailSubmit = async () => {
     if (!otpSent) {
       // Send OTP
+      if (!email.trim()) {
+        toast.error('Please enter your email address');
+        return;
+      }
+      
       setIsLoading(true);
       try {
-        // Simulate OTP sending
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setOtpSent(true);
-        toast.success('OTP Sent', {
-          description: `Verification code sent to ${email}`
-        });
+        const result = await authService.sendOTP(email);
+        if (result.success) {
+          setOtpSent(true);
+          setGeneratedOTP(result.otp || '');
+          toast.success('OTP Sent Successfully', {
+            description: `Verification code: ${result.otp} (for demo)`
+          });
+        }
       } catch (error) {
-        toast.error('Failed to send OTP');
+        toast.error('Failed to send OTP', {
+          description: error instanceof Error ? error.message : 'Please check your email and try again'
+        });
       } finally {
         setIsLoading(false);
       }
     } else {
       // Verify OTP and login
+      if (!otp.trim()) {
+        toast.error('Please enter the OTP');
+        return;
+      }
+      
       setIsLoading(true);
       try {
-        if (otp === '123456') {
-          const user = await authService.login('demo@cyberguard.ai', 'password123');
-          toast.success('Email Login Successful', {
-            description: 'Welcome back to CyberGuard AI'
-          });
-          setIsLoginOpen(false);
-          setOtpSent(false);
-          setOtp('');
-          setEmail('');
-        } else {
-          toast.error('Invalid OTP', {
-            description: 'Please check your email and try again'
-          });
-        }
+        const user = await authService.verifyOTPAndLogin(email, otp);
+        toast.success('Login Successful', {
+          description: `Welcome ${user.name}!`
+        });
+        setIsLoginOpen(false);
+        resetLoginState();
       } catch (error) {
-        toast.error('Login Failed');
+        toast.error('Login Failed', {
+          description: error instanceof Error ? error.message : 'Invalid OTP'
+        });
       } finally {
         setIsLoading(false);
       }
@@ -197,7 +214,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Login Dialog */}
+      {/* Enhanced Login Dialog */}
       <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -205,6 +222,9 @@ export default function Navbar() {
               <Shield className="w-5 h-5 text-cyberguard-primary" />
               Login to CyberGuard AI
             </DialogTitle>
+            <DialogDescription>
+              Choose your preferred login method to access your secure dashboard
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -221,6 +241,15 @@ export default function Navbar() {
                   <Chrome className="w-4 h-4" />
                   Continue with Google
                 </Button>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
                 
                 <Button 
                   onClick={() => setLoginMethod('email')}
@@ -239,9 +268,12 @@ export default function Navbar() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    disabled={otpSent}
+                    placeholder="Enter your email address"
+                    disabled={otpSent || isLoading}
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Any valid email address will work for demo
+                  </p>
                 </div>
                 
                 {otpSent && (
@@ -250,11 +282,16 @@ export default function Navbar() {
                     <Input
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
-                      placeholder="Enter 6-digit code (use 123456)"
+                      placeholder="Enter 6-digit verification code"
                       maxLength={6}
                     />
+                    {generatedOTP && (
+                      <p className="text-xs text-green-600 mt-1 font-medium">
+                        Demo OTP: {generatedOTP}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500 mt-1">
-                      Check your email for the verification code
+                      Check the demo OTP above or your email
                     </p>
                   </div>
                 )}
@@ -262,20 +299,16 @@ export default function Navbar() {
                 <Button 
                   onClick={handleEmailSubmit}
                   className="w-full bg-cyberguard-primary hover:bg-cyberguard-primary/90"
-                  disabled={isLoading || (!otpSent && !email) || (otpSent && !otp)}
+                  disabled={isLoading || (!otpSent && !email.trim()) || (otpSent && !otp.trim())}
                 >
                   {isLoading ? 'Processing...' : otpSent ? 'Verify & Login' : 'Send OTP'}
                 </Button>
                 
                 <Button 
                   variant="ghost" 
-                  onClick={() => {
-                    setLoginMethod(null);
-                    setOtpSent(false);
-                    setOtp('');
-                    setEmail('');
-                  }}
+                  onClick={resetLoginState}
                   className="w-full"
+                  disabled={isLoading}
                 >
                   Back to login options
                 </Button>

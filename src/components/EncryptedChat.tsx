@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -16,13 +15,11 @@ import {
   Video,
   Phone,
   MoreHorizontal,
-  Download,
-  Trash2,
-  Star,
   Search,
   Settings,
   UserPlus,
-  Archive
+  Archive,
+  CheckCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -33,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
 import * as authService from '@/services/authService';
+import ChatMessage from './ChatMessage';
 
 interface ChatMessage {
   id: string;
@@ -136,16 +134,28 @@ export default function EncryptedChat() {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const currentUser = authService.getCurrentUser();
 
-  const sendMessage = (type: 'text' | 'file' | 'image' | 'voice' = 'text') => {
-    if (type === 'text' && !newMessage.trim()) return;
+  // Simulate typing indicator
+  useEffect(() => {
+    if (newMessage.length > 0) {
+      setIsTyping(true);
+      const timer = setTimeout(() => setIsTyping(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [newMessage]);
+
+  const sendMessage = (type: 'text' | 'file' | 'image' | 'voice' = 'text', content?: string) => {
+    if (type === 'text' && !newMessage.trim() && !content) return;
     if (!selectedContact) return;
 
+    const messageContent = content || (type === 'text' ? newMessage : `${type.charAt(0).toUpperCase() + type.slice(1)} message`);
+    
     const message: ChatMessage = {
       id: Date.now().toString(),
       sender: 'You',
-      content: type === 'text' ? newMessage : `${type.charAt(0).toUpperCase() + type.slice(1)} message`,
+      content: messageContent,
       timestamp: new Date(),
       encrypted: true,
       type,
@@ -155,17 +165,49 @@ export default function EncryptedChat() {
     setMessages(prev => [...prev, message]);
     if (type === 'text') setNewMessage('');
     
+    // Simulate message delivery
+    setTimeout(() => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === message.id ? { ...msg, status: 'delivered' } : msg
+      ));
+    }, 1000);
+    
+    // Simulate message read
+    setTimeout(() => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === message.id ? { ...msg, status: 'read' } : msg
+      ));
+    }, 2000);
+    
     toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} sent`, {
-      description: 'End-to-end encrypted'
+      description: 'End-to-end encrypted',
+      icon: <CheckCircle className="w-4 h-4" />
     });
   };
 
   const handleFileUpload = () => {
-    sendMessage('file');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        sendMessage('file', `📎 ${file.name}`);
+      }
+    };
+    input.click();
   };
 
   const handleImageUpload = () => {
-    sendMessage('image');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        sendMessage('image', `🖼️ ${file.name}`);
+      }
+    };
+    input.click();
   };
 
   const handleVoiceRecord = () => {
@@ -176,7 +218,7 @@ export default function EncryptedChat() {
       });
       setTimeout(() => {
         setIsRecording(false);
-        sendMessage('voice');
+        sendMessage('voice', '🎤 Voice message (3s)');
       }, 3000);
     }
   };
@@ -185,6 +227,18 @@ export default function EncryptedChat() {
     setMessages(prev => prev.map(msg => 
       msg.id === messageId ? { ...msg, starred: !msg.starred } : msg
     ));
+  };
+
+  const handleReplyMessage = (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (message) {
+      setNewMessage(`@${message.sender} `);
+    }
+  };
+
+  const handleCopyMessage = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast.success('Message copied to clipboard');
   };
 
   const getStatusColor = (status: ChatContact['status']) => {
@@ -196,19 +250,27 @@ export default function EncryptedChat() {
     }
   };
 
-  const getMessageStatusIcon = (status: ChatMessage['status']) => {
-    switch (status) {
-      case 'sent': return '✓';
-      case 'delivered': return '✓✓';
-      case 'read': return '✓✓';
-      default: return '';
-    }
-  };
-
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (!currentUser) {
+    return (
+      <div className="rounded-xl border overflow-hidden bg-white">
+        <div className="flex items-center justify-center h-[400px]">
+          <div className="text-center">
+            <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Login Required</h3>
+            <p className="text-gray-500 mb-4">Please login to access encrypted chat</p>
+            <Badge className="bg-green-100 text-green-800">
+              Free Access • No Premium Required
+            </Badge>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border overflow-hidden bg-white">
@@ -236,11 +298,20 @@ export default function EncryptedChat() {
             </div>
             
             <div className="flex gap-2">
-              <Button size="sm" className="flex-1" variant="outline">
+              <Button 
+                size="sm" 
+                className="flex-1" 
+                variant="outline"
+                onClick={() => toast.success('New chat feature coming soon!')}
+              >
                 <Plus className="w-4 h-4 mr-1" />
                 New Chat
               </Button>
-              <Button size="sm" variant="outline">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => toast.success('Add contact feature coming soon!')}
+              >
                 <UserPlus className="w-4 h-4" />
               </Button>
             </div>
@@ -310,6 +381,9 @@ export default function EncryptedChat() {
                       <p className="text-sm text-gray-500 flex items-center gap-1">
                         <div className={`w-2 h-2 rounded-full ${getStatusColor(selectedContact.status)}`}></div>
                         {selectedContact.status === 'online' ? 'Online' : selectedContact.status}
+                        {isTyping && selectedContact.status === 'online' && (
+                          <span className="text-green-600 animate-pulse">• typing...</span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -318,10 +392,18 @@ export default function EncryptedChat() {
                       <Lock className="w-3 h-3 mr-1" />
                       E2E Encrypted
                     </Badge>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => toast.success('Voice call feature coming soon!')}
+                    >
                       <Phone className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => toast.success('Video call feature coming soon!')}
+                    >
                       <Video className="w-4 h-4" />
                     </Button>
                     <DropdownMenu>
@@ -343,11 +425,6 @@ export default function EncryptedChat() {
                           <Settings className="w-4 h-4 mr-2" />
                           Chat settings
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete chat
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -357,60 +434,14 @@ export default function EncryptedChat() {
               {/* Enhanced Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                 {messages.map((message) => (
-                  <div
+                  <ChatMessage
                     key={message.id}
-                    className={`flex ${message.sender === 'You' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className="max-w-xs lg:max-w-md group">
-                      <div
-                        className={`px-4 py-2 rounded-lg relative ${
-                          message.sender === 'You'
-                            ? 'bg-cyberguard-primary text-white'
-                            : 'bg-white text-gray-800 border'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            {message.type === 'text' ? (
-                              <p className="text-sm">{message.content}</p>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                {message.type === 'file' && <FileText className="w-4 h-4" />}
-                                {message.type === 'image' && <Image className="w-4 h-4" />}
-                                {message.type === 'voice' && <Mic className="w-4 h-4" />}
-                                <span className="text-sm">{message.content}</span>
-                              </div>
-                            )}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className={`opacity-0 group-hover:opacity-100 transition-opacity ml-2 h-6 w-6 p-0 ${
-                              message.sender === 'You' ? 'text-white hover:bg-white/20' : 'text-gray-500 hover:bg-gray-100'
-                            }`}
-                            onClick={() => toggleStarMessage(message.id)}
-                          >
-                            <Star className={`w-3 h-3 ${message.starred ? 'fill-current' : ''}`} />
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <p className={`text-xs ${message.sender === 'You' ? 'text-white/70' : 'text-gray-500'}`}>
-                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                          <div className="flex items-center gap-1">
-                            {message.encrypted && (
-                              <Lock className={`w-3 h-3 ${message.sender === 'You' ? 'text-white/70' : 'text-green-600'}`} />
-                            )}
-                            {message.sender === 'You' && (
-                              <span className={`text-xs ${message.status === 'read' ? 'text-blue-400' : 'text-white/70'}`}>
-                                {getMessageStatusIcon(message.status)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    message={message}
+                    isOwnMessage={message.sender === 'You'}
+                    onToggleStar={toggleStarMessage}
+                    onReply={handleReplyMessage}
+                    onCopy={handleCopyMessage}
+                  />
                 ))}
               </div>
 

@@ -9,50 +9,108 @@ export interface User {
   subscription: 'free' | 'premium';
 }
 
-// Simulate a database of users
-const mockUsers = [
-  {
-    id: '1',
-    email: 'demo@cyberguard.ai',
-    password: 'password123',
-    name: 'Demo User',
-    subscription: 'premium' as const // Make demo user premium for testing
-  },
-  {
-    id: '2',
-    email: 'premium@cyberguard.ai',
-    password: 'password123',
-    name: 'Premium User',
-    subscription: 'premium' as const
-  },
-  {
-    id: '3',
-    email: 'free@cyberguard.ai',
-    password: 'password123',
-    name: 'Free User',
-    subscription: 'free' as const
-  }
-];
-
 // Store the current user session
 let currentUser: User | null = null;
 
+// Store OTP codes temporarily
+const otpStore: { [email: string]: { code: string; expires: number } } = {};
+
 /**
- * Simulate login functionality
+ * Generate a random 6-digit OTP
+ */
+const generateOTP = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+/**
+ * Send OTP to email (simulated)
+ */
+export const sendOTP = async (email: string): Promise<{ success: boolean; otp?: string }> => {
+  console.log(`Sending OTP to ${email}`);
+  
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error('Invalid email format');
+  }
+  
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  const otp = generateOTP();
+  otpStore[email] = {
+    code: otp,
+    expires: Date.now() + 5 * 60 * 1000 // 5 minutes
+  };
+  
+  console.log(`OTP for ${email}: ${otp}`);
+  
+  // Return OTP for demo purposes (in real app, this would be sent via email)
+  return { success: true, otp };
+};
+
+/**
+ * Verify OTP and login
+ */
+export const verifyOTPAndLogin = async (email: string, otp: string): Promise<User> => {
+  console.log(`Verifying OTP for ${email}: ${otp}`);
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  const storedOTP = otpStore[email];
+  if (!storedOTP) {
+    throw new Error('No OTP found for this email. Please request a new one.');
+  }
+  
+  if (Date.now() > storedOTP.expires) {
+    delete otpStore[email];
+    throw new Error('OTP has expired. Please request a new one.');
+  }
+  
+  if (storedOTP.code !== otp) {
+    throw new Error('Invalid OTP. Please check and try again.');
+  }
+  
+  // Clean up used OTP
+  delete otpStore[email];
+  
+  // Create user from email
+  const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const newUser: User = {
+    id: Date.now().toString(),
+    email,
+    name,
+    subscription: 'premium' // Give all users premium for demo
+  };
+  
+  currentUser = newUser;
+  sessionStorage.setItem('cyberguard_user', JSON.stringify(newUser));
+  console.log(`Login successful for ${email}, subscription: ${newUser.subscription}`);
+  
+  return newUser;
+};
+
+/**
+ * Simulate login functionality (for backward compatibility)
  */
 export const login = async (email: string, password: string): Promise<User> => {
   console.log(`Attempting login for ${email}`);
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  const user = mockUsers.find(u => u.email === email && u.password === password);
-  
-  if (!user) {
-    throw new Error('Invalid credentials');
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error('Invalid email format');
   }
   
-  const { password: _, ...sessionUser } = user;
-  currentUser = sessionUser;
+  const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const sessionUser: User = {
+    id: Date.now().toString(),
+    email,
+    name,
+    subscription: 'premium'
+  };
   
+  currentUser = sessionUser;
   sessionStorage.setItem('cyberguard_user', JSON.stringify(sessionUser));
   console.log(`Login successful for ${email}, subscription: ${sessionUser.subscription}`);
   
@@ -60,31 +118,25 @@ export const login = async (email: string, password: string): Promise<User> => {
 };
 
 /**
- * Register a new user
+ * Google login simulation
  */
-export const register = async (email: string, password: string, name: string): Promise<User> => {
+export const googleLogin = async (): Promise<User> => {
+  console.log('Attempting Google login');
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  if (mockUsers.some(u => u.email === email)) {
-    throw new Error('User already exists');
-  }
-  
-  const newUser = {
-    id: `${mockUsers.length + 1}`,
-    email,
-    password,
-    name,
-    subscription: 'premium' as const // New users get premium for demo
+  // Simulate getting user info from Google
+  const mockGoogleUser: User = {
+    id: 'google-' + Date.now(),
+    email: 'user@gmail.com',
+    name: 'Google User',
+    subscription: 'premium'
   };
   
-  mockUsers.push(newUser);
+  currentUser = mockGoogleUser;
+  sessionStorage.setItem('cyberguard_user', JSON.stringify(mockGoogleUser));
+  console.log(`Google login successful for ${mockGoogleUser.email}`);
   
-  const { password: _, ...sessionUser } = newUser;
-  currentUser = sessionUser;
-  
-  sessionStorage.setItem('cyberguard_user', JSON.stringify(sessionUser));
-  
-  return sessionUser;
+  return mockGoogleUser;
 };
 
 /**
