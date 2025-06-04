@@ -4,7 +4,34 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, Lock, Send, Shield, Plus } from 'lucide-react';
+import { 
+  MessageSquare, 
+  Lock, 
+  Send, 
+  Shield, 
+  Plus, 
+  FileText, 
+  Image, 
+  Mic, 
+  Video,
+  Phone,
+  MoreHorizontal,
+  Download,
+  Trash2,
+  Star,
+  Search,
+  Settings,
+  UserPlus,
+  Archive
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { toast } from 'sonner';
 import * as authService from '@/services/authService';
 
 interface ChatMessage {
@@ -13,6 +40,9 @@ interface ChatMessage {
   content: string;
   timestamp: Date;
   encrypted: boolean;
+  type: 'text' | 'file' | 'image' | 'voice';
+  status: 'sent' | 'delivered' | 'read';
+  starred?: boolean;
 }
 
 interface ChatContact {
@@ -23,6 +53,8 @@ interface ChatContact {
   lastMessage: string;
   unread: number;
   encrypted: boolean;
+  avatar?: string;
+  lastSeen?: Date;
 }
 
 export default function EncryptedChat() {
@@ -34,7 +66,8 @@ export default function EncryptedChat() {
       status: 'online',
       lastMessage: 'The contract details look good',
       unread: 2,
-      encrypted: true
+      encrypted: true,
+      lastSeen: new Date()
     },
     {
       id: '2',
@@ -43,7 +76,8 @@ export default function EncryptedChat() {
       status: 'away',
       lastMessage: 'Can we schedule a secure call?',
       unread: 0,
-      encrypted: true
+      encrypted: true,
+      lastSeen: new Date(Date.now() - 1000 * 60 * 30)
     },
     {
       id: '3',
@@ -52,7 +86,18 @@ export default function EncryptedChat() {
       status: 'offline',
       lastMessage: 'Thanks for the encrypted files',
       unread: 1,
-      encrypted: true
+      encrypted: true,
+      lastSeen: new Date(Date.now() - 1000 * 60 * 60 * 2)
+    },
+    {
+      id: '4',
+      name: 'Emma Johnson',
+      email: 'emma@finance.com',
+      status: 'online',
+      lastMessage: 'Voice message received',
+      unread: 0,
+      encrypted: true,
+      lastSeen: new Date()
     }
   ]);
 
@@ -63,40 +108,83 @@ export default function EncryptedChat() {
       sender: 'John Doe',
       content: 'Hey, can you review the sensitive documents I sent?',
       timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      encrypted: true
+      encrypted: true,
+      type: 'text',
+      status: 'read'
     },
     {
       id: '2',
       sender: 'You',
       content: 'Sure, I\'ll take a look at them now. Thanks for using encrypted chat.',
       timestamp: new Date(Date.now() - 1000 * 60 * 25),
-      encrypted: true
+      encrypted: true,
+      type: 'text',
+      status: 'read'
     },
     {
       id: '3',
       sender: 'John Doe',
       content: 'The contract details look good. All information is end-to-end encrypted.',
       timestamp: new Date(Date.now() - 1000 * 60 * 5),
-      encrypted: true
+      encrypted: true,
+      type: 'text',
+      status: 'delivered',
+      starred: true
     }
   ]);
 
   const [newMessage, setNewMessage] = useState('');
-  const isPremium = authService.isPremiumUser();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const currentUser = authService.getCurrentUser();
 
-  const sendMessage = () => {
-    if (!newMessage.trim() || !selectedContact) return;
+  const sendMessage = (type: 'text' | 'file' | 'image' | 'voice' = 'text') => {
+    if (type === 'text' && !newMessage.trim()) return;
+    if (!selectedContact) return;
 
     const message: ChatMessage = {
       id: Date.now().toString(),
       sender: 'You',
-      content: newMessage,
+      content: type === 'text' ? newMessage : `${type.charAt(0).toUpperCase() + type.slice(1)} message`,
       timestamp: new Date(),
-      encrypted: true
+      encrypted: true,
+      type,
+      status: 'sent'
     };
 
     setMessages(prev => [...prev, message]);
-    setNewMessage('');
+    if (type === 'text') setNewMessage('');
+    
+    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} sent`, {
+      description: 'End-to-end encrypted'
+    });
+  };
+
+  const handleFileUpload = () => {
+    sendMessage('file');
+  };
+
+  const handleImageUpload = () => {
+    sendMessage('image');
+  };
+
+  const handleVoiceRecord = () => {
+    if (!isRecording) {
+      setIsRecording(true);
+      toast.success('Recording started', {
+        description: 'Voice message will be encrypted'
+      });
+      setTimeout(() => {
+        setIsRecording(false);
+        sendMessage('voice');
+      }, 3000);
+    }
+  };
+
+  const toggleStarMessage = (messageId: string) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, starred: !msg.starred } : msg
+    ));
   };
 
   const getStatusColor = (status: ChatContact['status']) => {
@@ -108,43 +196,58 @@ export default function EncryptedChat() {
     }
   };
 
-  if (!isPremium) {
-    return (
-      <div className="rounded-xl border p-6">
-        <div className="text-center">
-          <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="font-semibold text-xl mb-2">Encrypted Chat</h3>
-          <p className="text-gray-600 mb-4">Secure, end-to-end encrypted communications</p>
-          <Badge variant="outline" className="mb-4">Premium Feature</Badge>
-          <p className="text-sm text-gray-500 mb-6">
-            Communicate securely with military-grade encryption, perfect for sensitive business conversations
-          </p>
-          <Button className="bg-cyberguard-primary hover:bg-cyberguard-primary/90">
-            Upgrade to Pro
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const getMessageStatusIcon = (status: ChatMessage['status']) => {
+    switch (status) {
+      case 'sent': return '✓';
+      case 'delivered': return '✓✓';
+      case 'read': return '✓✓';
+      default: return '';
+    }
+  };
+
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    contact.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="rounded-xl border overflow-hidden">
-      <div className="flex h-96">
-        {/* Contacts Sidebar */}
+    <div className="rounded-xl border overflow-hidden bg-white">
+      <div className="flex h-[600px]">
+        {/* Enhanced Contacts Sidebar */}
         <div className="w-1/3 border-r bg-gray-50">
           <div className="p-4 border-b bg-white">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold">Encrypted Chats</h3>
-              <Badge className="bg-cyberguard-primary">Pro</Badge>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Encrypted Chats
+              </h3>
+              <Badge className="bg-green-500 text-white">Free Access</Badge>
             </div>
-            <Button size="sm" className="w-full" variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
-              New Chat
-            </Button>
+            
+            {/* Search Bar */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search contacts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 text-sm"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1" variant="outline">
+                <Plus className="w-4 h-4 mr-1" />
+                New Chat
+              </Button>
+              <Button size="sm" variant="outline">
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           
-          <div className="overflow-y-auto">
-            {contacts.map((contact) => (
+          <div className="overflow-y-auto h-full">
+            {filteredContacts.map((contact) => (
               <div
                 key={contact.id}
                 className={`p-3 border-b cursor-pointer hover:bg-white transition-colors ${
@@ -153,29 +256,35 @@ export default function EncryptedChat() {
                 onClick={() => setSelectedContact(contact)}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center">
+                  <div className="flex items-center flex-1">
                     <div className="relative">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="text-xs">
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback className="text-sm bg-gradient-to-r from-blue-500 to-purple-500 text-white">
                           {contact.name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(contact.status)}`}></div>
                     </div>
-                    <div className="ml-2">
-                      <p className="font-medium text-sm">{contact.name}</p>
+                    <div className="ml-3 flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-sm truncate">{contact.name}</p>
+                        <div className="flex items-center gap-1">
+                          {contact.encrypted && (
+                            <Lock className="w-3 h-3 text-green-600" />
+                          )}
+                          {contact.unread > 0 && (
+                            <Badge className="bg-red-500 text-white text-xs min-w-[20px] h-5 rounded-full">
+                              {contact.unread}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                       <p className="text-xs text-gray-500 truncate">{contact.lastMessage}</p>
+                      <p className="text-xs text-gray-400">
+                        {contact.status === 'online' ? 'Online' : 
+                         contact.lastSeen ? `Last seen ${contact.lastSeen.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Offline'}
+                      </p>
                     </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    {contact.encrypted && (
-                      <Lock className="w-3 h-3 text-green-600 mb-1" />
-                    )}
-                    {contact.unread > 0 && (
-                      <Badge className="bg-red-500 text-white text-xs">
-                        {contact.unread}
-                      </Badge>
-                    )}
                   </div>
                 </div>
               </div>
@@ -183,95 +292,194 @@ export default function EncryptedChat() {
           </div>
         </div>
 
-        {/* Chat Area */}
+        {/* Enhanced Chat Area */}
         <div className="flex-1 flex flex-col">
           {selectedContact ? (
             <>
-              {/* Chat Header */}
+              {/* Enhanced Chat Header */}
               <div className="p-4 border-b bg-white">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <Avatar className="w-8 h-8 mr-3">
-                      <AvatarFallback>
+                    <Avatar className="w-10 h-10 mr-3">
+                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
                         {selectedContact.name.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <h4 className="font-medium">{selectedContact.name}</h4>
-                      <p className="text-sm text-gray-500">{selectedContact.email}</p>
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <div className={`w-2 h-2 rounded-full ${getStatusColor(selectedContact.status)}`}></div>
+                        {selectedContact.status === 'online' ? 'Online' : selectedContact.status}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className="bg-green-100 text-green-800">
                       <Lock className="w-3 h-3 mr-1" />
-                      Encrypted
+                      E2E Encrypted
                     </Badge>
-                    <div className={`w-2 h-2 rounded-full ${getStatusColor(selectedContact.status)}`}></div>
+                    <Button size="sm" variant="outline">
+                      <Phone className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Video className="w-4 h-4" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Search className="w-4 h-4 mr-2" />
+                          Search in chat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Archive className="w-4 h-4 mr-2" />
+                          Archive chat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Settings className="w-4 h-4 mr-2" />
+                          Chat settings
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-red-600">
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete chat
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Enhanced Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                 {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.sender === 'You' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        message.sender === 'You'
-                          ? 'bg-cyberguard-primary text-white'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      <p className="text-sm">{message.content}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <p className={`text-xs ${message.sender === 'You' ? 'text-white/70' : 'text-gray-500'}`}>
-                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        {message.encrypted && (
-                          <Lock className={`w-3 h-3 ${message.sender === 'You' ? 'text-white/70' : 'text-green-600'}`} />
-                        )}
+                    <div className="max-w-xs lg:max-w-md group">
+                      <div
+                        className={`px-4 py-2 rounded-lg relative ${
+                          message.sender === 'You'
+                            ? 'bg-cyberguard-primary text-white'
+                            : 'bg-white text-gray-800 border'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            {message.type === 'text' ? (
+                              <p className="text-sm">{message.content}</p>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                {message.type === 'file' && <FileText className="w-4 h-4" />}
+                                {message.type === 'image' && <Image className="w-4 h-4" />}
+                                {message.type === 'voice' && <Mic className="w-4 h-4" />}
+                                <span className="text-sm">{message.content}</span>
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className={`opacity-0 group-hover:opacity-100 transition-opacity ml-2 h-6 w-6 p-0 ${
+                              message.sender === 'You' ? 'text-white hover:bg-white/20' : 'text-gray-500 hover:bg-gray-100'
+                            }`}
+                            onClick={() => toggleStarMessage(message.id)}
+                          >
+                            <Star className={`w-3 h-3 ${message.starred ? 'fill-current' : ''}`} />
+                          </Button>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className={`text-xs ${message.sender === 'You' ? 'text-white/70' : 'text-gray-500'}`}>
+                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            {message.encrypted && (
+                              <Lock className={`w-3 h-3 ${message.sender === 'You' ? 'text-white/70' : 'text-green-600'}`} />
+                            )}
+                            {message.sender === 'You' && (
+                              <span className={`text-xs ${message.status === 'read' ? 'text-blue-400' : 'text-white/70'}`}>
+                                {getMessageStatusIcon(message.status)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Message Input */}
+              {/* Enhanced Message Input */}
               <div className="p-4 border-t bg-white">
-                <div className="flex items-center gap-2">
+                <div className="flex items-end gap-2 mb-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleFileUpload}
+                    className="h-8"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleImageUpload}
+                    className="h-8"
+                  >
+                    <Image className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleVoiceRecord}
+                    className={`h-8 ${isRecording ? 'bg-red-100 text-red-600' : ''}`}
+                  >
+                    <Mic className={`w-4 h-4 ${isRecording ? 'animate-pulse' : ''}`} />
+                  </Button>
                   <div className="flex-1 relative">
                     <Input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Type an encrypted message..."
                       onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                      className="pr-10"
+                      className="pr-12"
                     />
                     <Shield className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-600" />
                   </div>
                   <Button
-                    onClick={sendMessage}
+                    onClick={() => sendMessage()}
                     disabled={!newMessage.trim()}
                     size="sm"
-                    className="bg-cyberguard-primary hover:bg-cyberguard-primary/90"
+                    className="bg-cyberguard-primary hover:bg-cyberguard-primary/90 h-8"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2 flex items-center">
-                  <Lock className="w-3 h-3 mr-1" />
-                  End-to-end encrypted with AES-256
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 flex items-center">
+                    <Lock className="w-3 h-3 mr-1" />
+                    End-to-end encrypted with AES-256 • Free tier includes all features
+                  </p>
+                  <p className="text-xs text-green-600 font-medium">
+                    ✓ All Premium Features Unlocked
+                  </p>
+                </div>
               </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Select a contact to start chatting</p>
+                <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Welcome to Encrypted Chat</h3>
+                <p className="text-gray-500 mb-4">Select a contact to start secure messaging</p>
+                <Badge className="bg-green-100 text-green-800">
+                  All features available for free
+                </Badge>
               </div>
             </div>
           )}
