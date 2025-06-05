@@ -80,17 +80,15 @@ export default function ChatMessage({
                 <div className="flex items-center gap-2">
                   {getMessageIcon()}
                   <span className="text-sm">{message.content}</span>
-                  {message.type !== 'text' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className={`h-6 w-6 p-0 ${
-                        isOwnMessage ? 'text-white hover:bg-white/20' : 'text-gray-500 hover:bg-gray-100'
-                      }`}
-                    >
-                      <Download className="w-3 h-3" />
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`h-6 w-6 p-0 ${
+                      isOwnMessage ? 'text-white hover:bg-white/20' : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Download className="w-3 h-3" />
+                  </Button>
                 </div>
               )}
             </div>
