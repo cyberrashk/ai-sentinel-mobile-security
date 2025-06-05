@@ -1,20 +1,21 @@
+
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import SecurityStatus from '@/components/SecurityStatus';
 import SecurityScanCard from '@/components/SecurityScanCard';
+import SecurityTabs from '@/components/SecurityTabs';
 import SecureVault from '@/components/SecureVault';
 import AIAssistant from '@/components/AIAssistant';
 import FeatureGrid from '@/components/FeatureGrid';
 import PremiumFeatures from '@/components/PremiumFeatures';
-import AlertCenter from '@/components/AlertCenter';
-import DarkWebMonitor from '@/components/DarkWebMonitor';
+import EnhancedDarkWebMonitor from '@/components/EnhancedDarkWebMonitor';
 import FamilyProtection from '@/components/FamilyProtection';
 import FinancialGuard from '@/components/FinancialGuard';
 import EncryptedChat from '@/components/EncryptedChat';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ShieldCheck, Shield } from 'lucide-react';
+import { ShieldCheck, Shield, Bell } from 'lucide-react';
 import PaymentModal from '@/components/PaymentModal';
 import { checkUpgradeStatus } from '@/services/paymentService';
 import * as authService from '@/services/authService';
@@ -23,13 +24,34 @@ const Index = () => {
   const [securityStatus, setSecurityStatus] = useState<'protected' | 'warning' | 'danger'>('protected');
   const [statusMessage, setStatusMessage] = useState('Your device is secure and protected by CyberGuard AI');
   const [isProPaymentModalOpen, setIsProPaymentModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<{name: string, email: string} | null>(null);
+  const [showAlerts, setShowAlerts] = useState(false);
   
   const upgradeStatus = checkUpgradeStatus();
   const isPremium = authService.isPremiumUser();
 
+  // Check for existing user session on component mount
+  React.useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
+      setIsLoggedIn(true);
+      setUser(currentUser);
+    }
+  }, []);
+
+  const handleLogin = (userData: {name: string, email: string}) => {
+    setIsLoggedIn(true);
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setIsLoggedIn(false);
+    setUser(null);
+  };
+
   const handleScan = () => {
-    // In a real app, this would perform an actual scan
-    // For demo purposes, randomly change status sometimes
     if (Math.random() > 0.7) {
       setSecurityStatus('warning');
       setStatusMessage('We found some potential vulnerabilities that need attention');
@@ -47,6 +69,19 @@ const Index = () => {
         description: 'No security threats were found on your device',
       });
     }
+  };
+
+  const handleExploreFeatures = () => {
+    if (!isLoggedIn) {
+      toast.info('Login Required', {
+        description: 'Please login to explore security features'
+      });
+      // Could open login modal here
+      return;
+    }
+    
+    // Navigate to security section
+    document.getElementById('security-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const proFeatures = [
@@ -91,11 +126,11 @@ const Index = () => {
                   malware, phishing, and identity theft.
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <Button size="lg" className="bg-white text-cyberguard-primary hover:bg-white/90">
+                  <Button size="lg" className="bg-white text-cyberguard-primary hover:bg-white/90" onClick={handleScan}>
                     <ShieldCheck className="mr-2 w-5 h-5" />
                     Scan Now
                   </Button>
-                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-white/10">
+                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-white/10" onClick={handleExploreFeatures}>
                     Explore Features
                   </Button>
                 </div>
@@ -118,11 +153,21 @@ const Index = () => {
 
         {/* Security Status */}
         <section className="mb-8">
-          <SecurityStatus
-            level={securityStatus}
-            message={statusMessage}
-            className="mb-6"
-          />
+          <div className="flex items-center justify-between mb-4">
+            <SecurityStatus
+              level={securityStatus}
+              message={statusMessage}
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              onClick={() => setShowAlerts(!showAlerts)}
+              className="ml-4"
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              {showAlerts ? 'Hide' : 'Show'} Alerts
+            </Button>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <SecurityScanCard type="malware" onScan={handleScan} />
@@ -132,9 +177,15 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Alert Center */}
-        <section className="mb-8">
-          <AlertCenter />
+        {/* Security Features Section */}
+        <section id="security-section" className="mb-8">
+          <SecurityTabs 
+            isLoggedIn={isLoggedIn}
+            user={user}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            showAlerts={showAlerts}
+          />
         </section>
 
         {/* Premium Features Showcase */}
@@ -160,7 +211,7 @@ const Index = () => {
             </TabsContent>
             
             <TabsContent value="darkweb" className="mt-6">
-              <DarkWebMonitor />
+              <EnhancedDarkWebMonitor />
             </TabsContent>
             
             <TabsContent value="family" className="mt-6">
