@@ -1,22 +1,16 @@
 
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
-import SecurityStatus from '@/components/SecurityStatus';
-import SecurityScanCard from '@/components/SecurityScanCard';
 import SecurityTabs from '@/components/SecurityTabs';
-import SecureVault from '@/components/SecureVault';
-import AIAssistant from '@/components/AIAssistant';
-import FeatureGrid from '@/components/FeatureGrid';
 import PremiumFeatures from '@/components/PremiumFeatures';
-import EnhancedDarkWebMonitor from '@/components/EnhancedDarkWebMonitor';
-import FamilyProtection from '@/components/FamilyProtection';
-import FinancialGuard from '@/components/FinancialGuard';
-import EncryptedChat from '@/components/EncryptedChat';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from 'sonner';
-import { ShieldCheck, Shield, Bell } from 'lucide-react';
 import PaymentModal from '@/components/PaymentModal';
+import HeroSection from '@/components/HeroSection';
+import SecurityStatusSection from '@/components/SecurityStatusSection';
+import PremiumFeaturesSection from '@/components/PremiumFeaturesSection';
+import AllFeaturesSection from '@/components/AllFeaturesSection';
+import UpgradeSection from '@/components/UpgradeSection';
+import AppFooter from '@/components/AppFooter';
+import { toast } from 'sonner';
 import { checkUpgradeStatus } from '@/services/paymentService';
 import * as authService from '@/services/authService';
 
@@ -76,7 +70,6 @@ const Index = () => {
       toast.info('Login Required', {
         description: 'Please login to explore security features'
       });
-      // Could open login modal here
       return;
     }
     
@@ -98,86 +91,16 @@ const Index = () => {
       <Navbar />
       
       <main className="cyberguard-container py-6">
-        {/* Hero Section */}
-        <section className="mb-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-cyberguard-primary to-cyberguard-secondary text-white">
-            <div className="absolute inset-0 opacity-10">
-              {[...Array(20)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute bg-white rounded-full"
-                  style={{
-                    width: `${Math.random() * 10 + 5}px`,
-                    height: `${Math.random() * 10 + 5}px`,
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                    opacity: Math.random() * 0.5 + 0.2
-                  }}
-                />
-              ))}
-            </div>
-            <div className="relative z-10 px-6 py-16 md:py-20 md:px-10 lg:px-20 flex flex-col md:flex-row items-center">
-              <div className="md:w-2/3 mb-8 md:mb-0 md:pr-8">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                  AI-Powered Protection for Your Digital Life
-                </h1>
-                <p className="text-lg opacity-90 mb-6">
-                  CyberGuard AI uses advanced artificial intelligence to protect you from cyber threats, 
-                  malware, phishing, and identity theft.
-                </p>
-                <div className="flex flex-wrap gap-4">
-                  <Button size="lg" className="bg-white text-cyberguard-primary hover:bg-white/90" onClick={handleScan}>
-                    <ShieldCheck className="mr-2 w-5 h-5" />
-                    Scan Now
-                  </Button>
-                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-white/10" onClick={handleExploreFeatures}>
-                    Explore Features
-                  </Button>
-                </div>
-              </div>
-              <div className="md:w-1/3 flex justify-center">
-                <div className="relative">
-                  <div className="w-40 h-40 md:w-48 md:h-48 rounded-full bg-white/20 flex items-center justify-center">
-                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/30 flex items-center justify-center">
-                      <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white flex items-center justify-center">
-                        <Shield className="w-12 h-12 md:w-16 md:h-16 text-cyberguard-primary" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 rounded-full animate-pulse-ring opacity-20 border-4 border-white"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <HeroSection onScan={handleScan} onExploreFeatures={handleExploreFeatures} />
+        
+        <SecurityStatusSection
+          securityStatus={securityStatus}
+          statusMessage={statusMessage}
+          showAlerts={showAlerts}
+          onToggleAlerts={() => setShowAlerts(!showAlerts)}
+          onScan={handleScan}
+        />
 
-        {/* Security Status */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <SecurityStatus
-              level={securityStatus}
-              message={statusMessage}
-              className="flex-1"
-            />
-            <Button
-              variant="outline"
-              onClick={() => setShowAlerts(!showAlerts)}
-              className="ml-4"
-            >
-              <Bell className="w-4 h-4 mr-2" />
-              {showAlerts ? 'Hide' : 'Show'} Alerts
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <SecurityScanCard type="malware" onScan={handleScan} />
-            <SecurityScanCard type="phishing" onScan={handleScan} />
-            <SecurityScanCard type="network" onScan={handleScan} />
-            <SecurityScanCard type="identity" onScan={handleScan} />
-          </div>
-        </section>
-
-        {/* Security Features Section */}
         <section id="security-section" className="mb-8">
           <SecurityTabs 
             isLoggedIn={isLoggedIn}
@@ -188,144 +111,22 @@ const Index = () => {
           />
         </section>
 
-        {/* Premium Features Showcase */}
-        <section className="mb-8">
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="darkweb">Dark Web</TabsTrigger>
-              <TabsTrigger value="family">Family</TabsTrigger>
-              <TabsTrigger value="financial">Financial</TabsTrigger>
-              <TabsTrigger value="chat">Encrypted Chat</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="overview" className="mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <SecureVault />
-                </div>
-                <div>
-                  <AIAssistant />
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="darkweb" className="mt-6">
-              <EnhancedDarkWebMonitor />
-            </TabsContent>
-            
-            <TabsContent value="family" className="mt-6">
-              <FamilyProtection />
-            </TabsContent>
-            
-            <TabsContent value="financial" className="mt-6">
-              <FinancialGuard />
-            </TabsContent>
-            
-            <TabsContent value="chat" className="mt-6">
-              <EncryptedChat />
-            </TabsContent>
-          </Tabs>
-        </section>
+        <PremiumFeaturesSection />
 
-        {/* Premium Features Section */}
         {!upgradeStatus.isUpgraded && (
           <PremiumFeatures />
         )}
 
-        {/* Features Section */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">All Security Features</h2>
-            <Button variant="outline">
-              View All
-            </Button>
-          </div>
-          
-          <Tabs defaultValue="all" className="mb-6">
-            <TabsList>
-              <TabsTrigger value="all">All Features</TabsTrigger>
-              <TabsTrigger value="protection">Protection</TabsTrigger>
-              <TabsTrigger value="privacy">Privacy</TabsTrigger>
-              <TabsTrigger value="identity">Identity</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="mt-6">
-              <FeatureGrid />
-            </TabsContent>
-            
-            <TabsContent value="protection" className="mt-6">
-              <div className="text-center py-8">
-                <p className="text-gray-500">Protection features will appear here</p>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="privacy" className="mt-6">
-              <div className="text-center py-8">
-                <p className="text-gray-500">Privacy features will appear here</p>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="identity" className="mt-6">
-              <div className="text-center py-8">
-                <p className="text-gray-500">Identity protection features will appear here</p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </section>
+        <AllFeaturesSection />
         
-        {/* Upgrade Section for Pro Plan */}
-        <section className="mb-10">
-          <div className="rounded-2xl border bg-gradient-to-br from-cyberguard-secondary/5 to-cyberguard-primary/10 p-8">
-            <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                {upgradeStatus.isUpgraded ? 
-                  `You're on CyberGuard ${upgradeStatus.plan.charAt(0).toUpperCase() + upgradeStatus.plan.slice(1)}!` :
-                  'Upgrade to CyberGuard AI Pro'
-                }
-              </h2>
-              <p className="text-gray-600 mb-6">
-                {upgradeStatus.isUpgraded ?
-                  'Enjoy all the advanced features and premium protection.' :
-                  'Get the ultimate protection with dark web monitoring, encrypted communications, and family safety features.'
-                }
-              </p>
-              {!upgradeStatus.isUpgraded && (
-                <Button 
-                  size="lg" 
-                  className="bg-cyberguard-primary hover:bg-cyberguard-primary/90 text-white"
-                  onClick={() => setIsProPaymentModalOpen(true)}
-                >
-                  Upgrade to Pro - $9.99/month
-                </Button>
-              )}
-              {upgradeStatus.isUpgraded && upgradeStatus.upgradeDate && (
-                <p className="text-sm text-gray-500">
-                  Upgraded on {upgradeStatus.upgradeDate.toLocaleDateString()}
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
+        <UpgradeSection
+          upgradeStatus={upgradeStatus}
+          onUpgrade={() => setIsProPaymentModalOpen(true)}
+        />
       </main>
       
-      <footer className="bg-gray-100 border-t border-gray-200">
-        <div className="cyberguard-container py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 md:mb-0">
-              <div className="w-8 h-8 rounded-full shield-gradient flex items-center justify-center mr-2">
-                <Shield className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-medium">CyberGuard AI</span>
-            </div>
-            <div className="text-sm text-gray-500">
-              © 2025 CyberGuard AI. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
+      <AppFooter />
 
-      {/* Pro Payment Modal */}
       <PaymentModal
         isOpen={isProPaymentModalOpen}
         onClose={() => setIsProPaymentModalOpen(false)}
