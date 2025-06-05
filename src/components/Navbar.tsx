@@ -19,10 +19,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import * as authService from '@/services/authService';
+import AlertCenter from '@/components/AlertCenter';
 
 export default function Navbar() {
   const location = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [loginMethod, setLoginMethod] = useState<'email' | 'google' | null>(null);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -112,6 +114,10 @@ export default function Navbar() {
     authService.logout();
     toast.success('Logged out successfully');
   };
+
+  const toggleAlerts = () => {
+    setIsAlertsOpen(!isAlertsOpen);
+  };
   
   return (
     <>
@@ -147,7 +153,7 @@ export default function Navbar() {
             </div>
             
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative" onClick={toggleAlerts}>
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-cyberguard-alert rounded-full"></span>
               </Button>
@@ -213,6 +219,23 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+
+      {/* Alerts Dialog */}
+      <Dialog open={isAlertsOpen} onOpenChange={setIsAlertsOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-orange-500" />
+              Security Alerts
+            </DialogTitle>
+            <DialogDescription>
+              Monitor all security events and threats in real-time
+            </DialogDescription>
+          </DialogHeader>
+          
+          <AlertCenter />
+        </DialogContent>
+      </Dialog>
 
       {/* Enhanced Login Dialog */}
       <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
