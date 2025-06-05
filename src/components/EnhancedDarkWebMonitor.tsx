@@ -2,14 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Eye, AlertTriangle, Shield, Clock, Globe, Link, Image, Search } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import * as darkWebService from '@/services/darkWebService';
 import * as authService from '@/services/authService';
+import DarkWebDataScan from '@/components/DarkWebDataScan';
+import DarkWebImageDetection from '@/components/DarkWebImageDetection';
+import DarkWebUrlScanner from '@/components/DarkWebUrlScanner';
+import DarkWebResults from '@/components/DarkWebResults';
 
 export default function EnhancedDarkWebMonitor() {
   const [isScanning, setIsScanning] = useState(false);
@@ -198,172 +199,38 @@ export default function EnhancedDarkWebMonitor() {
         </TabsList>
         
         <TabsContent value="scan" className="mt-4">
-          {isScanning ? (
-            <div className="space-y-4">
-              <div className="text-center">
-                <h4 className="font-medium mb-2">Deep Scanning Dark Web...</h4>
-                <Progress value={scanProgress} className="h-3 mb-2" />
-                <p className="text-sm text-gray-600">
-                  {scanProgress < 30 && 'Connecting to monitoring networks...'}
-                  {scanProgress >= 30 && scanProgress < 60 && 'Searching breach databases...'}
-                  {scanProgress >= 60 && scanProgress < 90 && 'Analyzing data patterns...'}
-                  {scanProgress >= 90 && 'Finalizing comprehensive scan...'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {lastScan && (
-                <Alert className="border-blue-200 bg-blue-50">
-                  <Clock className="w-4 h-4" />
-                  <AlertTitle>Last Comprehensive Scan</AlertTitle>
-                  <AlertDescription>
-                    <div className="flex items-center justify-between">
-                      <span>{lastScan.toLocaleString()}</span>
-                      {breaches.length > 0 ? (
-                        <Badge variant="destructive">{breaches.length} Issues Found</Badge>
-                      ) : (
-                        <Badge className="bg-green-100 text-green-800">All Clear</Badge>
-                      )}
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <Button 
-                onClick={startDarkWebScan}
-                className="w-full bg-cyberguard-primary hover:bg-cyberguard-primary/90"
-                size="lg"
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Start Deep Dark Web Scan
-              </Button>
-            </div>
-          )}
+          <DarkWebDataScan
+            isScanning={isScanning}
+            scanProgress={scanProgress}
+            lastScan={lastScan}
+            breaches={breaches}
+            onStartScan={startDarkWebScan}
+          />
         </TabsContent>
         
         <TabsContent value="images" className="mt-4">
-          <div className="space-y-4">
-            <Alert className="border-orange-200 bg-orange-50">
-              <Image className="w-4 h-4" />
-              <AlertTitle>Image Detection on Dark Web</AlertTitle>
-              <AlertDescription>
-                Advanced AI scans for your images across dark web marketplaces and forums
-              </AlertDescription>
-            </Alert>
-            
-            {detectedImages.map((image) => (
-              <Alert key={image.id} className={getSeverityColor(image.risk)}>
-                <AlertTriangle className="w-4 h-4" />
-                <AlertTitle>{image.type.charAt(0).toUpperCase() + image.type.slice(1)} Image Detected</AlertTitle>
-                <AlertDescription>
-                  <p className="mb-2">{image.description}</p>
-                  <p className="text-sm">Source: {image.source}</p>
-                  <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="outline">View Details</Button>
-                    <Button size="sm" className="bg-red-600 text-white">Request Removal</Button>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            ))}
-          </div>
+          <DarkWebImageDetection
+            detectedImages={detectedImages}
+            getSeverityColor={getSeverityColor}
+          />
         </TabsContent>
         
         <TabsContent value="urls" className="mt-4">
-          <div className="space-y-4">
-            <Alert className="border-blue-200 bg-blue-50">
-              <Link className="w-4 h-4" />
-              <AlertTitle>Malicious URL Detection</AlertTitle>
-              <AlertDescription>
-                Check URLs for malware, phishing, and malicious payloads before visiting
-              </AlertDescription>
-            </Alert>
-            
-            <div className="flex gap-2">
-              <Input
-                value={urlToCheck}
-                onChange={(e) => setUrlToCheck(e.target.value)}
-                placeholder="Enter URL to scan (e.g., https://example.com)"
-                className="flex-1"
-              />
-              <Button 
-                onClick={scanUrl}
-                disabled={isUrlScanning}
-                className="bg-cyberguard-primary"
-              >
-                {isUrlScanning ? 'Scanning...' : 'Scan URL'}
-              </Button>
-            </div>
-            
-            {urlScanResult && (
-              <Alert className={urlScanResult.safe ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
-                <Shield className="w-4 h-4" />
-                <AlertTitle>
-                  {urlScanResult.safe ? 'URL is Safe' : 'Malicious URL Detected'}
-                </AlertTitle>
-                <AlertDescription>
-                  <div className="space-y-2">
-                    <p><strong>URL:</strong> {urlScanResult.url}</p>
-                    <p><strong>Reputation:</strong> {urlScanResult.reputation}</p>
-                    {!urlScanResult.safe && (
-                      <div>
-                        <p><strong>Threats Detected:</strong></p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {urlScanResult.threats.map((threat: string, index: number) => (
-                            <Badge key={index} variant="destructive">{threat}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-500">
-                      Scanned: {urlScanResult.lastScan.toLocaleString()}
-                    </p>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+          <DarkWebUrlScanner
+            urlToCheck={urlToCheck}
+            setUrlToCheck={setUrlToCheck}
+            urlScanResult={urlScanResult}
+            isUrlScanning={isUrlScanning}
+            onScanUrl={scanUrl}
+          />
         </TabsContent>
         
         <TabsContent value="results" className="mt-4">
-          {riskAnalysis && (
-            <Alert className={`mb-4 ${getSeverityColor(riskAnalysis.overallRisk)}`}>
-              <Shield className="w-4 h-4" />
-              <AlertTitle>Overall Risk Assessment: {riskAnalysis.overallRisk.toUpperCase()}</AlertTitle>
-              <AlertDescription>
-                <div className="text-sm mt-2">
-                  <p className="mb-2">Risk Score: {riskAnalysis.riskScore}/100</p>
-                  <p className="mb-2">Recommended Actions:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    {riskAnalysis.actionableSteps.slice(0, 4).map((step: string, index: number) => (
-                      <li key={index}>{step}</li>
-                    ))}
-                  </ul>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {breaches.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium">Data Breaches Found ({breaches.length})</h4>
-              {breaches.map((breach) => (
-                <Alert key={breach.id} className="border-red-200 bg-red-50">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <AlertTitle className="text-red-800">{breach.source}</AlertTitle>
-                  <AlertDescription>
-                    <div className="text-sm text-red-700">
-                      <p>Date: {breach.dateLeaked.toLocaleDateString()}</p>
-                      <p>Data exposed: {breach.dataExposed.join(', ')}</p>
-                      <Badge className={getSeverityColor(breach.severity)} variant="outline">
-                        {breach.severity.toUpperCase()} Risk
-                      </Badge>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              ))}
-            </div>
-          )}
+          <DarkWebResults
+            riskAnalysis={riskAnalysis}
+            breaches={breaches}
+            getSeverityColor={getSeverityColor}
+          />
         </TabsContent>
       </Tabs>
     </div>
