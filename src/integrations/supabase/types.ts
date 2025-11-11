@@ -14,16 +14,374 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          is_resolved: boolean | null
+          message: string
+          metadata: Json | null
+          severity: Database["public"]["Enums"]["alert_severity"]
+          title: string
+          type: Database["public"]["Enums"]["alert_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          is_resolved?: boolean | null
+          message: string
+          metadata?: Json | null
+          severity: Database["public"]["Enums"]["alert_severity"]
+          title: string
+          type: Database["public"]["Enums"]["alert_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          is_resolved?: boolean | null
+          message?: string
+          metadata?: Json | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          title?: string
+          type?: Database["public"]["Enums"]["alert_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      antivirus_scans: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          items_scanned: number | null
+          scan_type: Database["public"]["Enums"]["scan_type"]
+          started_at: string
+          status: Database["public"]["Enums"]["scan_status"]
+          threats_found: number | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          items_scanned?: number | null
+          scan_type: Database["public"]["Enums"]["scan_type"]
+          started_at?: string
+          status?: Database["public"]["Enums"]["scan_status"]
+          threats_found?: number | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          items_scanned?: number | null
+          scan_type?: Database["public"]["Enums"]["scan_type"]
+          started_at?: string
+          status?: Database["public"]["Enums"]["scan_status"]
+          threats_found?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dark_web_scans: {
+        Row: {
+          breaches_found: number | null
+          completed_at: string | null
+          created_at: string
+          email: string
+          id: string
+          started_at: string
+          status: Database["public"]["Enums"]["scan_status"]
+          user_id: string
+        }
+        Insert: {
+          breaches_found?: number | null
+          completed_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["scan_status"]
+          user_id: string
+        }
+        Update: {
+          breaches_found?: number | null
+          completed_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["scan_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leaked_credentials: {
+        Row: {
+          breach_date: string | null
+          breach_name: string
+          created_at: string
+          discovered_at: string
+          email: string
+          id: string
+          leaked_data: string[] | null
+          scan_id: string | null
+          severity: Database["public"]["Enums"]["threat_severity"]
+          user_id: string
+        }
+        Insert: {
+          breach_date?: string | null
+          breach_name: string
+          created_at?: string
+          discovered_at?: string
+          email: string
+          id?: string
+          leaked_data?: string[] | null
+          scan_id?: string | null
+          severity: Database["public"]["Enums"]["threat_severity"]
+          user_id: string
+        }
+        Update: {
+          breach_date?: string | null
+          breach_name?: string
+          created_at?: string
+          discovered_at?: string
+          email?: string
+          id?: string
+          leaked_data?: string[] | null
+          scan_id?: string | null
+          severity?: Database["public"]["Enums"]["threat_severity"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaked_credentials_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "dark_web_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_transactions: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          plan_type: Database["public"]["Enums"]["subscription_tier"]
+          session_id: string
+          status: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          plan_type: Database["public"]["Enums"]["subscription_tier"]
+          session_id: string
+          status?: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          plan_type?: Database["public"]["Enums"]["subscription_tier"]
+          session_id?: string
+          status?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          subscription_expires_at: string | null
+          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          subscription_expires_at?: string | null
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          subscription_expires_at?: string | null
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      threats: {
+        Row: {
+          created_at: string
+          detected_at: string
+          file_path: string | null
+          id: string
+          name: string
+          resolved_at: string | null
+          scan_id: string | null
+          severity: Database["public"]["Enums"]["threat_severity"]
+          status: Database["public"]["Enums"]["threat_status"]
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detected_at?: string
+          file_path?: string | null
+          id?: string
+          name: string
+          resolved_at?: string | null
+          scan_id?: string | null
+          severity: Database["public"]["Enums"]["threat_severity"]
+          status?: Database["public"]["Enums"]["threat_status"]
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detected_at?: string
+          file_path?: string | null
+          id?: string
+          name?: string
+          resolved_at?: string | null
+          scan_id?: string | null
+          severity?: Database["public"]["Enums"]["threat_severity"]
+          status?: Database["public"]["Enums"]["threat_status"]
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "threats_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "antivirus_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vpn_sessions: {
+        Row: {
+          connected_at: string
+          data_received: number | null
+          data_sent: number | null
+          disconnected_at: string | null
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          server_country: string
+          server_id: string
+          server_name: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          data_received?: number | null
+          data_sent?: number | null
+          disconnected_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          server_country: string
+          server_id: string
+          server_name: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          data_received?: number | null
+          data_sent?: number | null
+          disconnected_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          server_country?: string
+          server_id?: string
+          server_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      alert_severity: "info" | "warning" | "critical"
+      alert_type: "security" | "vpn" | "antivirus" | "dark_web" | "system"
+      app_role: "admin" | "user"
+      scan_status: "pending" | "running" | "completed" | "cancelled" | "failed"
+      scan_type: "quick" | "full" | "custom"
+      subscription_tier: "free" | "premium" | "pro"
+      threat_severity: "low" | "medium" | "high" | "critical"
+      threat_status: "detected" | "quarantined" | "removed" | "allowed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +508,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      alert_severity: ["info", "warning", "critical"],
+      alert_type: ["security", "vpn", "antivirus", "dark_web", "system"],
+      app_role: ["admin", "user"],
+      scan_status: ["pending", "running", "completed", "cancelled", "failed"],
+      scan_type: ["quick", "full", "custom"],
+      subscription_tier: ["free", "premium", "pro"],
+      threat_severity: ["low", "medium", "high", "critical"],
+      threat_status: ["detected", "quarantined", "removed", "allowed"],
+    },
   },
 } as const
