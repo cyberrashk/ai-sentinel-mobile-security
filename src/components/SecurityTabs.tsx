@@ -13,21 +13,16 @@ import UserProfile from '@/components/UserProfile';
 import MobileSecurity from '@/components/MobileSecurity';
 import * as authService from '@/services/authService';
 
+import { useAuth } from '@/hooks/useAuth';
+
 interface SecurityTabsProps {
-  isLoggedIn: boolean;
-  user: {name: string, email: string} | null;
-  onLogin: (userData: {name: string, email: string}) => void;
-  onLogout: () => void;
   showAlerts?: boolean;
 }
 
 const SecurityTabs: React.FC<SecurityTabsProps> = ({ 
-  isLoggedIn, 
-  user, 
-  onLogin, 
-  onLogout,
   showAlerts = false 
 }) => {
+  const { user, signOut } = useAuth();
   const [alerts] = useState([
     {
       id: '1',
@@ -55,13 +50,6 @@ const SecurityTabs: React.FC<SecurityTabsProps> = ({
     }
   ]);
 
-  // Check if user is already logged in from session
-  useEffect(() => {
-    const sessionUser = authService.getCurrentUser();
-    if (sessionUser && !isLoggedIn) {
-      onLogin(sessionUser);
-    }
-  }, [isLoggedIn, onLogin]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -131,9 +119,9 @@ const SecurityTabs: React.FC<SecurityTabsProps> = ({
         </TabsContent>
         
         <TabsContent value="account" className="mt-6">
-          {isLoggedIn && user ? (
+          {user ? (
             <>
-              <UserProfile user={user} onLogout={onLogout} />
+              <UserProfile user={{ name: user.email || '', email: user.email || '' }} onLogout={signOut} />
               
               {/* Security Settings */}
               <div className="mt-6 p-4 bg-white rounded-lg border">
@@ -185,7 +173,9 @@ const SecurityTabs: React.FC<SecurityTabsProps> = ({
               </div>
             </>
           ) : (
-            <Login onLogin={onLogin} />
+            <div className="text-center p-8">
+              <p>Please log in to view account details</p>
+            </div>
           )}
         </TabsContent>
       </Tabs>

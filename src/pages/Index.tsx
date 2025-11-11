@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import SecurityTabs from '@/components/SecurityTabs';
 import PremiumFeatures from '@/components/PremiumFeatures';
@@ -11,39 +12,30 @@ import AllFeaturesSection from '@/components/AllFeaturesSection';
 import UpgradeSection from '@/components/UpgradeSection';
 import AppFooter from '@/components/AppFooter';
 import { toast } from 'sonner';
-import { checkUpgradeStatus } from '@/services/paymentService';
-import * as authService from '@/services/authService';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [securityStatus, setSecurityStatus] = useState<'protected' | 'warning' | 'danger'>('protected');
   const [statusMessage, setStatusMessage] = useState('Your device is secure and protected by CyberGuard AI');
   const [isProPaymentModalOpen, setIsProPaymentModalOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<{name: string, email: string} | null>(null);
   const [showAlerts, setShowAlerts] = useState(false);
-  
-  const upgradeStatus = checkUpgradeStatus();
-  const isPremium = authService.isPremiumUser();
 
-  // Check for existing user session on component mount
-  React.useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setIsLoggedIn(true);
-      setUser(currentUser);
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
     }
-  }, []);
+  }, [user, loading, navigate]);
 
-  const handleLogin = (userData: {name: string, email: string}) => {
-    setIsLoggedIn(true);
-    setUser(userData);
-  };
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
-  const handleLogout = () => {
-    authService.logout();
-    setIsLoggedIn(false);
-    setUser(null);
-  };
+  if (!user) {
+    return null;
+  }
+
 
   const handleScan = () => {
     if (Math.random() > 0.7) {
@@ -66,14 +58,6 @@ const Index = () => {
   };
 
   const handleExploreFeatures = () => {
-    if (!isLoggedIn) {
-      toast.info('Login Required', {
-        description: 'Please login to explore security features'
-      });
-      return;
-    }
-    
-    // Navigate to security section
     document.getElementById('security-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -103,24 +87,17 @@ const Index = () => {
 
         <section id="security-section" className="mb-8">
           <SecurityTabs 
-            isLoggedIn={isLoggedIn}
-            user={user}
-            onLogin={handleLogin}
-            onLogout={handleLogout}
             showAlerts={showAlerts}
           />
         </section>
 
         <PremiumFeaturesSection />
 
-        {!upgradeStatus.isUpgraded && (
-          <PremiumFeatures />
-        )}
+        <PremiumFeatures />
 
         <AllFeaturesSection />
         
         <UpgradeSection
-          upgradeStatus={upgradeStatus}
           onUpgrade={() => setIsProPaymentModalOpen(true)}
         />
       </main>

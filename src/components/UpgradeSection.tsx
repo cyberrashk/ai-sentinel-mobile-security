@@ -3,15 +3,11 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 
 interface UpgradeSectionProps {
-  upgradeStatus: {
-    isUpgraded: boolean;
-    plan: string;
-    upgradeDate?: Date;
-  };
   onUpgrade: () => void;
 }
 
-const UpgradeSection: React.FC<UpgradeSectionProps> = ({ upgradeStatus, onUpgrade }) => {
+const UpgradeSection: React.FC<UpgradeSectionProps> = ({ onUpgrade }) => {
+  const upgradeStatus = { isUpgraded: false, plan: 'free' };
   return (
     <section className="mb-10">
       <div className="rounded-2xl border bg-gradient-to-br from-cyberguard-secondary/5 to-cyberguard-primary/10 p-8">
@@ -36,11 +32,6 @@ const UpgradeSection: React.FC<UpgradeSectionProps> = ({ upgradeStatus, onUpgrad
             >
               Upgrade to Pro - $9.99/month
             </Button>
-          )}
-          {upgradeStatus.isUpgraded && upgradeStatus.upgradeDate && (
-            <p className="text-sm text-gray-500">
-              Upgraded on {upgradeStatus.upgradeDate.toLocaleDateString()}
-            </p>
           )}
         </div>
       </div>

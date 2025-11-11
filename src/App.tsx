@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Security from "./pages/Security";
 import RecoveryFlow from "./pages/RecoveryFlow";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 // Create QueryClient outside component to avoid recreation
@@ -28,6 +29,7 @@ const App: React.FC = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/security" element={<Security />} />
             <Route path="/recovery" element={<RecoveryFlow />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

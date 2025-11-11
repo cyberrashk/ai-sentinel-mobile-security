@@ -1,1 +1,7 @@
 project_id = "xcmwfxiamwtklzwvtyld"
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.dark-web-scan]
+verify_jwt = true
